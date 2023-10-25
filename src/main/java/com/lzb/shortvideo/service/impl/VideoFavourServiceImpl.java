@@ -20,11 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 
-/**
-* @author 86177
-* @description 针对表【video_favour(帖子收藏)】的数据库操作Service实现
-* @createDate 2023-10-24 22:15:27
-*/
 @Service
 public class VideoFavourServiceImpl extends ServiceImpl<VideoFavourMapper, VideoFavour>
     implements VideoFavourService{
@@ -32,7 +27,7 @@ public class VideoFavourServiceImpl extends ServiceImpl<VideoFavourMapper, Video
     private VideoService videoService;
 
     /**
-     * 帖子收藏
+     * 视频收藏
      *
      * @param videoId
      * @param loginUser
@@ -45,9 +40,9 @@ public class VideoFavourServiceImpl extends ServiceImpl<VideoFavourMapper, Video
         if (video == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        // 是否已帖子收藏
+        // 是否已收藏
         long userId = loginUser.getId();
-        // 每个用户串行帖子收藏
+        // 每个用户串行
         // 锁必须要包裹住事务方法
         VideoFavourService videoFavourService = (VideoFavourService) AopContext.currentProxy();
         synchronized (String.valueOf(userId).intern()) {
@@ -83,7 +78,7 @@ public class VideoFavourServiceImpl extends ServiceImpl<VideoFavourMapper, Video
         if (oldVideoFavour != null) {
             result = this.remove(videoFavourQueryWrapper);
             if (result) {
-                // 帖子收藏数 - 1
+                // 视频收藏数 - 1
                 result = videoService.update()
                         .eq("id", videoId)
                         .gt("favourNum", 0)
@@ -94,10 +89,10 @@ public class VideoFavourServiceImpl extends ServiceImpl<VideoFavourMapper, Video
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR);
             }
         } else {
-            // 未帖子收藏
+            // 未视频收藏
             result = this.save(videoFavour);
             if (result) {
-                // 帖子收藏数 + 1
+                // 视频收藏数 + 1
                 result = videoService.update()
                         .eq("id", videoId)
                         .setSql("favourNum = favourNum + 1")

@@ -1,6 +1,6 @@
 {
   "aliases": {
-    "post": {}
+    "video": {}
   },
   "mappings": {
     "properties": {
@@ -25,6 +25,9 @@
             "ignore_above": 256
           }
         }
+      },
+      "url": {
+        "type": "keyword"
       },
       "tags": {
         "type": "keyword"

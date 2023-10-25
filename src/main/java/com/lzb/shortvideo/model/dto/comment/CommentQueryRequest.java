@@ -18,10 +18,6 @@ public class CommentQueryRequest extends PageRequest implements Serializable {
      */
     private Long id;
 
-    /**
-     * 内容
-     */
-    private String content;
 
     /**
      * 创建用户 id

@@ -73,25 +73,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             return queryWrapper;
         }
         Long id = commentQueryRequest.getId();
-        String content = commentQueryRequest.getContent();
         Long userId = commentQueryRequest.getUserId();
-        long current = commentQueryRequest.getCurrent();
-        long pageSize = commentQueryRequest.getPageSize();
         String sortField = commentQueryRequest.getSortField();
         String sortOrder = commentQueryRequest.getSortOrder();
 
         // 拼接查询条件
-        if (StringUtils.isNotBlank(searchText)) {
-            queryWrapper.like("title", searchText).or().like("content", searchText);
-        }
-        queryWrapper.like(StringUtils.isNotBlank(title), "title", title);
-        queryWrapper.like(StringUtils.isNotBlank(content), "content", content);
-        if (CollectionUtils.isNotEmpty(tagList)) {
-            for (String tag : tagList) {
-                queryWrapper.like("tags", "\"" + tag + "\"");
-            }
-        }
-        queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "id", notId);
         queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.eq("isDelete", false);
@@ -139,7 +125,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
                 .collect(Collectors.groupingBy(User::getId));
         // 2. 已登录，获取用户点赞、收藏状态
         Map<Long, Boolean> commentIdHasThumbMap = new HashMap<>();
-        Map<Long, Boolean> commentIdHasFavourMap = new HashMap<>();
         User loginUser = userService.getLoginUserPermitNull(request);
         if (loginUser != null) {
             Set<Long> commentIdSet = commentList.stream().map(Comment::getId).collect(Collectors.toSet());
@@ -150,12 +135,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             commentThumbQueryWrapper.eq("userId", loginUser.getId());
             List<CommentThumb> commentCommentThumbList = commentThumbMapper.selectList(commentThumbQueryWrapper);
             commentCommentThumbList.forEach(commentCommentThumb -> commentIdHasThumbMap.put(commentCommentThumb.getCommentId(), true));
-            // 获取收藏
-            QueryWrapper<CommentFavour> commentFavourQueryWrapper = new QueryWrapper<>();
-            commentFavourQueryWrapper.in("commentId", commentIdSet);
-            commentFavourQueryWrapper.eq("userId", loginUser.getId());
-            List<CommentFavour> commentFavourList = commentFavourMapper.selectList(commentFavourQueryWrapper);
-            commentFavourList.forEach(commentFavour -> commentIdHasFavourMap.put(commentFavour.getCommentId(), true));
         }
         // 填充信息
         List<CommentVO> commentVOList = commentList.stream().map(comment -> {
@@ -167,7 +146,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             }
             commentVO.setUser(userService.getUserVO(user));
             commentVO.setHasThumb(commentIdHasThumbMap.getOrDefault(comment.getId(), false));
-            commentVO.setHasFavour(commentIdHasFavourMap.getOrDefault(comment.getId(), false));
             return commentVO;
         }).collect(Collectors.toList());
         commentVOPage.setRecords(commentVOList);

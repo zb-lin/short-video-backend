@@ -51,10 +51,5 @@ public class VideoQueryRequest extends PageRequest implements Serializable {
     private List<String> orTags;
 
 
-    /**
-     * 收藏用户 id
-     */
-    private Long favourUserId;
-
     private static final long serialVersionUID = 1L;
 }

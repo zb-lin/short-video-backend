@@ -39,8 +39,6 @@ public class UserController {
     private UserService userService;
 
 
-    // region 登录相关
-
     /**
      * 用户注册
      *

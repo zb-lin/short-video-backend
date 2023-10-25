@@ -4,9 +4,10 @@ import com.lzb.shortvideo.common.BaseResponse;
 import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.common.ResultUtils;
 import com.lzb.shortvideo.exception.BusinessException;
-import com.lzb.shortvideo.model.dto.postthumb.PostThumbAddRequest;
+import com.lzb.shortvideo.model.dto.videothumb.VideoThumbAddRequest;
 import com.lzb.shortvideo.model.entity.User;
 import com.lzb.shortvideo.service.UserService;
+import com.lzb.shortvideo.service.VideoThumbService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,15 +18,15 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * 帖子点赞接口
+ * 视频点赞接口
  */
 @RestController
-@RequestMapping("/post_thumb")
+@RequestMapping("/video_thumb")
 @Slf4j
 public class VideoThumbController {
 
     @Resource
-    private PostThumbService postThumbService;
+    private VideoThumbService videoThumbService;
 
     @Resource
     private UserService userService;
@@ -33,20 +34,20 @@ public class VideoThumbController {
     /**
      * 点赞 / 取消点赞
      *
-     * @param postThumbAddRequest
+     * @param videoThumbAddRequest
      * @param request
      * @return resultNum 本次点赞变化数
      */
     @PostMapping("/")
-    public BaseResponse<Integer> doThumb(@RequestBody PostThumbAddRequest postThumbAddRequest,
+    public BaseResponse<Integer> doThumb(@RequestBody VideoThumbAddRequest videoThumbAddRequest,
                                          HttpServletRequest request) {
-        if (postThumbAddRequest == null || postThumbAddRequest.getPostId() <= 0) {
+        if (videoThumbAddRequest == null || videoThumbAddRequest.getVideoId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 登录才能点赞
         final User loginUser = userService.getLoginUser(request);
-        long postId = postThumbAddRequest.getPostId();
-        int result = postThumbService.doPostThumb(postId, loginUser);
+        long videoId = videoThumbAddRequest.getVideoId();
+        int result = videoThumbService.doVideoThumb(videoId, loginUser);
         return ResultUtils.success(result);
     }
 

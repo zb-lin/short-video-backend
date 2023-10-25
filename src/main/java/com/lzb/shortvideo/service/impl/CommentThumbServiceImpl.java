@@ -17,11 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 
-/**
-* @author 86177
-* @description 针对表【comment_thumb(评论点赞)】的数据库操作Service实现
-* @createDate 2023-10-24 22:15:27
-*/
+
 @Service
 public class CommentThumbServiceImpl extends ServiceImpl<CommentThumbMapper, CommentThumb>
     implements CommentThumbService{

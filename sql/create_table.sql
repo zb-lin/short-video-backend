@@ -46,7 +46,7 @@ create table if not exists video_thumb
     updateTime datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     index idx_postId (videoId),
     index idx_userId (userId)
-) comment '帖子点赞';
+) comment '视频点赞';
 
 -- 视频收藏表（硬删除）
 create table if not exists video_favour
@@ -58,7 +58,7 @@ create table if not exists video_favour
     updateTime datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     index idx_postId (videoId),
     index idx_userId (userId)
-) comment '帖子收藏';
+) comment '视频收藏';
 
 -- 评论表
 create table if not exists comment

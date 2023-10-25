@@ -2,22 +2,20 @@ package com.lzb.shortvideo.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
-import com.lzb.shortvideo.annotation.AuthCheck;
 import com.lzb.shortvideo.common.BaseResponse;
 import com.lzb.shortvideo.common.DeleteRequest;
 import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.common.ResultUtils;
-import com.lzb.shortvideo.constant.UserConstant;
 import com.lzb.shortvideo.exception.BusinessException;
 import com.lzb.shortvideo.exception.ThrowUtils;
-import com.lzb.shortvideo.model.dto.comment.CommentAddRequest;
-import com.lzb.shortvideo.model.dto.comment.CommentQueryRequest;
-import com.lzb.shortvideo.model.dto.comment.CommentUpdateRequest;
-import com.lzb.shortvideo.model.entity.Comment;
+import com.lzb.shortvideo.model.dto.video.VideoAddRequest;
+import com.lzb.shortvideo.model.dto.video.VideoQueryRequest;
+import com.lzb.shortvideo.model.dto.video.VideoUpdateRequest;
 import com.lzb.shortvideo.model.entity.User;
-import com.lzb.shortvideo.model.vo.CommentVO;
-import com.lzb.shortvideo.service.CommentService;
+import com.lzb.shortvideo.model.entity.Video;
+import com.lzb.shortvideo.model.vo.VideoVO;
 import com.lzb.shortvideo.service.UserService;
+import com.lzb.shortvideo.service.VideoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -27,15 +25,15 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
- * 帖子接口
+ * 视频接口
  */
 @RestController
-@RequestMapping("/comment")
+@RequestMapping("/video")
 @Slf4j
 public class VideoController {
 
     @Resource
-    private CommentService commentService;
+    private VideoService videoService;
 
     @Resource
     private UserService userService;
@@ -46,30 +44,34 @@ public class VideoController {
     /**
      * 创建
      *
-     * @param commentAddRequest
+     * @param videoAddRequest
      * @param request
      * @return
      */
     @PostMapping("/add")
-    public BaseResponse<Long> addComment(@RequestBody CommentAddRequest commentAddRequest, HttpServletRequest request) {
-        if (commentAddRequest == null) {
+    public BaseResponse<Long> addVideo(@RequestBody VideoAddRequest videoAddRequest, HttpServletRequest request) {
+        if (videoAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Comment comment = new Comment();
-        BeanUtils.copyProperties(commentAddRequest, comment);
-        List<String> tags = commentAddRequest.getTags();
+        Video video = new Video();
+        BeanUtils.copyProperties(videoAddRequest, video);
+        List<String> tags = videoAddRequest.getTags();
         if (tags != null) {
-            comment.setTags(GSON.toJson(tags));
+            video.setTags(GSON.toJson(tags));
         }
-        commentService.validComment(comment, true);
+        videoService.validVideo(video, true);
         User loginUser = userService.getLoginUser(request);
-        comment.setUserId(loginUser.getId());
-        comment.setFavourNum(0);
-        comment.setThumbNum(0);
-        boolean result = commentService.save(comment);
+        video.setUserId(loginUser.getId());
+        video.setFavourNum(0);
+        video.setThumbNum(0);
+
+        // todo 上传文件并获得url
+        video.setUrl("");
+
+        boolean result = videoService.save(video);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        long newCommentId = comment.getId();
-        return ResultUtils.success(newCommentId);
+        long newVideoId = video.getId();
+        return ResultUtils.success(newVideoId);
     }
 
     /**
@@ -80,50 +82,26 @@ public class VideoController {
      * @return
      */
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteComment(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+    public BaseResponse<Boolean> deleteVideo(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = userService.getLoginUser(request);
         long id = deleteRequest.getId();
         // 判断是否存在
-        Comment oldComment = commentService.getById(id);
-        ThrowUtils.throwIf(oldComment == null, ErrorCode.NOT_FOUND_ERROR);
+        Video oldVideo = videoService.getById(id);
+        ThrowUtils.throwIf(oldVideo == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可删除
-        if (!oldComment.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
+        if (!oldVideo.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
-        boolean b = commentService.removeById(id);
+        boolean b = videoService.removeById(id);
+        // todo 删除实际视频
+
+
         return ResultUtils.success(b);
     }
 
-    /**
-     * 更新（仅管理员）
-     *
-     * @param commentUpdateRequest
-     * @return
-     */
-    @PostMapping("/update")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateComment(@RequestBody CommentUpdateRequest commentUpdateRequest) {
-        if (commentUpdateRequest == null || commentUpdateRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Comment comment = new Comment();
-        BeanUtils.copyProperties(commentUpdateRequest, comment);
-        List<String> tags = commentUpdateRequest.getTags();
-        if (tags != null) {
-            comment.setTags(GSON.toJson(tags));
-        }
-        // 参数校验
-        commentService.validComment(comment, false);
-        long id = commentUpdateRequest.getId();
-        // 判断是否存在
-        Comment oldComment = commentService.getById(id);
-        ThrowUtils.throwIf(oldComment == null, ErrorCode.NOT_FOUND_ERROR);
-        boolean result = commentService.updateById(comment);
-        return ResultUtils.success(result);
-    }
 
     /**
      * 根据 id 获取
@@ -132,58 +110,58 @@ public class VideoController {
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<CommentVO> getCommentVOById(long id, HttpServletRequest request) {
+    public BaseResponse<VideoVO> getVideoVOById(long id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Comment comment = commentService.getById(id);
-        if (comment == null) {
+        Video video = videoService.getById(id);
+        if (video == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        return ResultUtils.success(commentService.getCommentVO(comment, request));
+        return ResultUtils.success(videoService.getVideoVO(video, request));
     }
 
     /**
      * 分页获取列表（封装类）
      *
-     * @param commentQueryRequest
+     * @param videoQueryRequest
      * @param request
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<CommentVO>> listCommentVOByPage(@RequestBody CommentQueryRequest commentQueryRequest,
-                                                       HttpServletRequest request) {
-        long current = commentQueryRequest.getCurrent();
-        long size = commentQueryRequest.getPageSize();
+    public BaseResponse<Page<VideoVO>> listVideoVOByPage(@RequestBody VideoQueryRequest videoQueryRequest,
+                                                         HttpServletRequest request) {
+        long current = videoQueryRequest.getCurrent();
+        long size = videoQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Comment> commentPage = commentService.page(new Page<>(current, size),
-                commentService.getQueryWrapper(commentQueryRequest));
-        return ResultUtils.success(commentService.getCommentVOPage(commentPage, request));
+        Page<Video> videoPage = videoService.page(new Page<>(current, size),
+                videoService.getQueryWrapper(videoQueryRequest));
+        return ResultUtils.success(videoService.getVideoVOPage(videoPage, request));
     }
 
     /**
      * 分页获取当前用户创建的资源列表
      *
-     * @param commentQueryRequest
+     * @param videoQueryRequest
      * @param request
      * @return
      */
     @PostMapping("/my/list/page/vo")
-    public BaseResponse<Page<CommentVO>> listMyCommentVOByPage(@RequestBody CommentQueryRequest commentQueryRequest,
-                                                         HttpServletRequest request) {
-        if (commentQueryRequest == null) {
+    public BaseResponse<Page<VideoVO>> listMyVideoVOByPage(@RequestBody VideoQueryRequest videoQueryRequest,
+                                                           HttpServletRequest request) {
+        if (videoQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User loginUser = userService.getLoginUser(request);
-        commentQueryRequest.setUserId(loginUser.getId());
-        long current = commentQueryRequest.getCurrent();
-        long size = commentQueryRequest.getPageSize();
+        videoQueryRequest.setUserId(loginUser.getId());
+        long current = videoQueryRequest.getCurrent();
+        long size = videoQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Comment> commentPage = commentService.page(new Page<>(current, size),
-                commentService.getQueryWrapper(commentQueryRequest));
-        return ResultUtils.success(commentService.getCommentVOPage(commentPage, request));
+        Page<Video> videoPage = videoService.page(new Page<>(current, size),
+                videoService.getQueryWrapper(videoQueryRequest));
+        return ResultUtils.success(videoService.getVideoVOPage(videoPage, request));
     }
 
     // endregion
@@ -191,50 +169,50 @@ public class VideoController {
     /**
      * 分页搜索（从 ES 查询，封装类）
      *
-     * @param commentQueryRequest
+     * @param videoQueryRequest
      * @param request
      * @return
      */
     @PostMapping("/search/page/vo")
-    public BaseResponse<Page<CommentVO>> searchCommentVOByPage(@RequestBody CommentQueryRequest commentQueryRequest,
-                                                         HttpServletRequest request) {
-        long size = commentQueryRequest.getPageSize();
+    public BaseResponse<Page<VideoVO>> searchVideoVOByPage(@RequestBody VideoQueryRequest videoQueryRequest,
+                                                           HttpServletRequest request) {
+        long size = videoQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Comment> commentPage = commentService.searchFromEs(commentQueryRequest);
-        return ResultUtils.success(commentService.getCommentVOPage(commentPage, request));
+        Page<Video> videoPage = videoService.searchFromEs(videoQueryRequest);
+        return ResultUtils.success(videoService.getVideoVOPage(videoPage, request));
     }
 
     /**
-     * 编辑（用户）
+     * 更新
      *
-     * @param commentEditRequest
+     * @param videoUpdateRequest
      * @param request
      * @return
      */
-    @PostMapping("/edit")
-    public BaseResponse<Boolean> editComment(@RequestBody CommentEditRequest commentEditRequest, HttpServletRequest request) {
-        if (commentEditRequest == null || commentEditRequest.getId() <= 0) {
+    @PostMapping("/update")
+    public BaseResponse<Boolean> updateVideo(@RequestBody VideoUpdateRequest videoUpdateRequest, HttpServletRequest request) {
+        if (videoUpdateRequest == null || videoUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Comment comment = new Comment();
-        BeanUtils.copyProperties(commentEditRequest, comment);
-        List<String> tags = commentEditRequest.getTags();
+        Video video = new Video();
+        BeanUtils.copyProperties(videoUpdateRequest, video);
+        List<String> tags = videoUpdateRequest.getTags();
         if (tags != null) {
-            comment.setTags(GSON.toJson(tags));
+            video.setTags(GSON.toJson(tags));
         }
         // 参数校验
-        commentService.validComment(comment, false);
+        videoService.validVideo(video, false);
         User loginUser = userService.getLoginUser(request);
-        long id = commentEditRequest.getId();
+        long id = videoUpdateRequest.getId();
         // 判断是否存在
-        Comment oldComment = commentService.getById(id);
-        ThrowUtils.throwIf(oldComment == null, ErrorCode.NOT_FOUND_ERROR);
+        Video oldVideo = videoService.getById(id);
+        ThrowUtils.throwIf(oldVideo == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可编辑
-        if (!oldComment.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+        if (!oldVideo.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
-        boolean result = commentService.updateById(comment);
+        boolean result = videoService.updateById(video);
         return ResultUtils.success(result);
     }
 

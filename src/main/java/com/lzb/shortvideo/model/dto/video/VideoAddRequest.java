@@ -29,6 +29,6 @@ public class VideoAddRequest implements Serializable {
     /**
      * 标签列表（json 数组）
      */
-    private String tags;
+    private List<String> tags;
 
     private static final long serialVersionUID = 1L;}

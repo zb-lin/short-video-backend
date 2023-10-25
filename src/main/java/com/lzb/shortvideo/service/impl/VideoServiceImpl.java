@@ -19,6 +19,7 @@ import com.lzb.shortvideo.service.UserService;
 import com.lzb.shortvideo.utils.SqlUtils;
 import com.lzb.shortvideo.service.VideoService;
 import com.lzb.shortvideo.mapper.VideoMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -40,11 +41,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
-* @author 86177
-* @description 针对表【video(视频)】的数据库操作Service实现
-* @createDate 2023-10-24 22:15:27
-*/
+@Slf4j
 @Service
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     implements VideoService{
@@ -70,6 +67,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         String title = video.getTitle();
         String content = video.getContent();
         String tags = video.getTags();
+
         // 创建时，参数不能为空
         if (add) {
             ThrowUtils.throwIf(StringUtils.isAnyBlank(title, content, tags), ErrorCode.PARAMS_ERROR);
@@ -103,7 +101,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         String content = videoQueryRequest.getContent();
         List<String> tagList = videoQueryRequest.getTags();
         Long userId = videoQueryRequest.getUserId();
-        Long notId = videoQueryRequest.getNotId();
+
         // 拼接查询条件
         if (StringUtils.isNotBlank(searchText)) {
             queryWrapper.like("title", searchText).or().like("content", searchText);
@@ -115,7 +113,6 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
                 queryWrapper.like("tags", "\"" + tag + "\"");
             }
         }
-        queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "id", notId);
         queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.eq("isDelete", false);
@@ -127,7 +124,6 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     @Override
     public Page<Video> searchFromEs(VideoQueryRequest videoQueryRequest) {
         Long id = videoQueryRequest.getId();
-        Long notId = videoQueryRequest.getNotId();
         String searchText = videoQueryRequest.getSearchText();
         String title = videoQueryRequest.getTitle();
         String content = videoQueryRequest.getContent();
@@ -139,14 +135,12 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         long pageSize = videoQueryRequest.getPageSize();
         String sortField = videoQueryRequest.getSortField();
         String sortOrder = videoQueryRequest.getSortOrder();
+
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
         // 过滤
         boolQueryBuilder.filter(QueryBuilders.termQuery("isDelete", 0));
         if (id != null) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("id", id));
-        }
-        if (notId != null) {
-            boolQueryBuilder.mustNot(QueryBuilders.termQuery("id", notId));
         }
         if (userId != null) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("userId", userId));
@@ -198,7 +192,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         Page<Video> page = new Page<>();
         page.setTotal(searchHits.getTotalHits());
         List<Video> resourceList = new ArrayList<>();
-        // 查出结果后，从 db 获取最新动态数据（比如点赞数）
+        // 查出结果后，从 db 获取最新动态数据（比如点赞数, 收藏数）
         if (searchHits.hasSearchHits()) {
             List<SearchHit<VideoEsDTO>> searchHitList = searchHits.getSearchHits();
             List<Long> videoIdList = searchHitList.stream().map(searchHit -> searchHit.getContent().getId())
