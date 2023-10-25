@@ -23,6 +23,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * 文件接口
@@ -37,6 +38,10 @@ public class FileController {
 
     @Resource
     private CosManager cosManager;
+
+    private static final List<String> PERMISSIBLE_FILE_FORMATS =
+            Arrays.asList("jpeg", "jpg", "svg", "png", "webp",
+                    ".avi", ".mp4", ".mkv", ".mov", ".wmv", ".flv", ".rmvb", ".mpeg", ".3gp", ".mpg");
 
     /**
      * 文件上传
@@ -59,7 +64,7 @@ public class FileController {
         // 文件目录：根据业务、用户来划分
         String uuid = RandomStringUtils.randomAlphanumeric(8);
         String filename = uuid + "-" + multipartFile.getOriginalFilename();
-        String filepath = String.format("/%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
+        String filepath = String.format("%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
         File file = null;
         try {
             // 上传文件
@@ -93,12 +98,12 @@ public class FileController {
         long fileSize = multipartFile.getSize();
         // 文件后缀
         String fileSuffix = FileUtil.getSuffix(multipartFile.getOriginalFilename());
-        final long ONE_M = 1024 * 1024L;
+        final long ONE_G = 1024 * 1024 * 1024L;
         if (FileUploadBizEnum.USER_AVATAR.equals(fileUploadBizEnum)) {
-            if (fileSize > ONE_M) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件大小不能超过 1M");
+            if (fileSize > ONE_G) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件大小不能超过 1G");
             }
-            if (!Arrays.asList("jpeg", "jpg", "svg", "png", "webp").contains(fileSuffix)) {
+            if (!PERMISSIBLE_FILE_FORMATS.contains(fileSuffix)) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件类型错误");
             }
         }

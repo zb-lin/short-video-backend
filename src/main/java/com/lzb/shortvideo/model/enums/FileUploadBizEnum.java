@@ -11,7 +11,9 @@ import java.util.stream.Collectors;
  */
 public enum FileUploadBizEnum {
 
-    USER_AVATAR("用户头像", "user_avatar");
+    USER_AVATAR("用户头像", "user_avatar"),
+    VIDEO("视频", "video");
+
 
     private final String text;
 

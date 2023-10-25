@@ -1,6 +1,6 @@
-package com.lzb.shortvideo.job.cycle;
+//package com.lzb.shortvideo.job.cycle;
 
-import com.lzb.shortvideo.model.dto.post.PostEsDTO;
+//import com.lzb.shortvideo.model.dto.post.PostEsDTO;
 
 ///**
 // * 增量同步帖子到 es

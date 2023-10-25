@@ -9,16 +9,20 @@ import com.lzb.shortvideo.constant.CommonConstant;
 import com.lzb.shortvideo.exception.BusinessException;
 import com.lzb.shortvideo.exception.ThrowUtils;
 import com.lzb.shortvideo.mapper.VideoFavourMapper;
+import com.lzb.shortvideo.mapper.VideoMapper;
 import com.lzb.shortvideo.mapper.VideoThumbMapper;
 import com.lzb.shortvideo.model.dto.video.VideoEsDTO;
 import com.lzb.shortvideo.model.dto.video.VideoQueryRequest;
-import com.lzb.shortvideo.model.entity.*;
-import com.lzb.shortvideo.model.vo.VideoVO;
+import com.lzb.shortvideo.model.entity.User;
+import com.lzb.shortvideo.model.entity.Video;
+import com.lzb.shortvideo.model.entity.VideoFavour;
+import com.lzb.shortvideo.model.entity.VideoThumb;
 import com.lzb.shortvideo.model.vo.UserVO;
+import com.lzb.shortvideo.model.vo.VideoVO;
 import com.lzb.shortvideo.service.UserService;
-import com.lzb.shortvideo.utils.SqlUtils;
 import com.lzb.shortvideo.service.VideoService;
-import com.lzb.shortvideo.mapper.VideoMapper;
+import com.lzb.shortvideo.utils.SqlUtils;
+import com.lzb.shortvideo.utils.sensitive.sensitiveWord.SensitiveWordBs;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -44,7 +48,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
-    implements VideoService{
+        implements VideoService {
     private final static Gson GSON = new Gson();
 
     @Resource
@@ -58,6 +62,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
 
     @Resource
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
+    @Resource
+    private SensitiveWordBs sensitiveWordBs;
 
     @Override
     public void validVideo(Video video, boolean add) {
@@ -79,6 +85,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         if (StringUtils.isNotBlank(content) && content.length() > 8192) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "内容过长");
         }
+        ThrowUtils.throwIf(sensitiveWordBs.hasSensitiveWord(content, title, tags), ErrorCode.SENSITIVE_WORD_ERROR);
+
     }
 
     /**

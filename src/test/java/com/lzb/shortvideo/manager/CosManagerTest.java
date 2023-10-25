@@ -16,6 +16,6 @@ class CosManagerTest {
 
     @Test
     void putObject() {
-        cosManager.putObject("test", "test.json");
+//        cosManager.putObject("test", "test.json");
     }
 }

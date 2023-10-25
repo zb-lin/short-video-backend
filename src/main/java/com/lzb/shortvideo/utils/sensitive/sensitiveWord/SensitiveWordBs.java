@@ -4,9 +4,6 @@ import java.util.List;
 
 /**
  * 敏感词引导类
- *
- * @author zhaoyuhang
- * @date 2023/07/08
  */
 public class SensitiveWordBs {
 
@@ -32,14 +29,9 @@ public class SensitiveWordBs {
 
     /**
      * 初始化
-     * <p>
      * 1. 根据配置，初始化对应的 map。比较消耗性能。
-     *
-     * @return this
-     * @since 0.0.13
      */
     public SensitiveWordBs init() {
-
         List<String> words = wordDeny.getWordList();
         loadWord(words);
         return this;
@@ -77,6 +69,22 @@ public class SensitiveWordBs {
      */
     public boolean hasSensitiveWord(String text) {
         return sensitiveWordFilter.hasSensitiveWord(text);
+    }
+
+    /**
+     * 有敏感词
+     *
+     * @param texts 文本
+     * @return boolean
+     */
+    public boolean hasSensitiveWord(String... texts) {
+        for (String text : texts) {
+            boolean result = sensitiveWordFilter.hasSensitiveWord(text);
+            if (result) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

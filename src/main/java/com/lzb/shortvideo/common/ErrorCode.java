@@ -7,6 +7,7 @@ public enum ErrorCode {
 
     SUCCESS(0, "ok"),
     PARAMS_ERROR(40000, "请求参数错误"),
+    SENSITIVE_WORD_ERROR(40001, "内容包含敏感词，请重新输入"),
     NOT_LOGIN_ERROR(40100, "未登录"),
     NO_AUTH_ERROR(40101, "无权限"),
     NOT_FOUND_ERROR(40400, "请求数据不存在"),

@@ -18,6 +18,7 @@ import com.lzb.shortvideo.model.vo.UserVO;
 import com.lzb.shortvideo.service.CommentService;
 import com.lzb.shortvideo.service.UserService;
 import com.lzb.shortvideo.utils.SqlUtils;
+import com.lzb.shortvideo.utils.sensitive.sensitiveWord.SensitiveWordBs;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -42,6 +43,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
     @Resource
     private CommentThumbMapper commentThumbMapper;
 
+    @Resource
+    private SensitiveWordBs sensitiveWordBs;
 
     @Override
     public void validComment(Comment comment, boolean add) {
@@ -58,6 +61,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         if (StringUtils.isNotBlank(content) && content.length() == 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "不能发布空评论");
         }
+        ThrowUtils.throwIf(sensitiveWordBs.hasSensitiveWord(content), ErrorCode.SENSITIVE_WORD_ERROR);
     }
 
     /**

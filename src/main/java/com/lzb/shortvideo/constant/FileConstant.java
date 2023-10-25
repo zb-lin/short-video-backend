@@ -7,7 +7,6 @@ public interface FileConstant {
 
     /**
      * COS 访问地址
-     * todo 需替换配置
      */
-    String COS_HOST = "https://github.com/zb-lin?tab=repositories";
+    String COS_HOST = "http://s32x7tly6.hn-bkt.clouddn.com/";
 }

@@ -1,21 +1,20 @@
 package com.lzb.shortvideo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.lzb.shortvideo.model.dto.user.UserQueryRequest;
 import com.lzb.shortvideo.model.entity.User;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.lzb.shortvideo.model.vo.LoginUserVO;
 import com.lzb.shortvideo.model.vo.UserVO;
-import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
-* @author 86177
-* @description 针对表【user(用户)】的数据库操作Service
-* @createDate 2023-10-24 22:15:27
-*/
+ * @author 86177
+ * @description 针对表【user(用户)】的数据库操作Service
+ * @createDate 2023-10-24 22:15:27
+ */
 public interface UserService extends IService<User> {
     /**
      * 用户注册
@@ -36,7 +35,6 @@ public interface UserService extends IService<User> {
      * @return 脱敏后的用户信息
      */
     LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
-
 
 
     /**

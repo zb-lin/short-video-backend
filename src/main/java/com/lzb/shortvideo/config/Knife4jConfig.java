@@ -12,7 +12,6 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 /**
  * Knife4j 接口文档配置
- * https://doc.xiaominfo.com/knife4j/documentation/get_start.html
  */
 @Configuration
 @EnableSwagger2
@@ -24,12 +23,12 @@ public class Knife4jConfig {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(new ApiInfoBuilder()
                         .title("接口文档")
-                        .description("oj")
+                        .description("shortvideo")
                         .version("1.0")
                         .build())
                 .select()
                 // 指定 Controller 扫描包路径
-                .apis(RequestHandlerSelectors.basePackage("com.lzb.oj.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.lzb.shortvideo.controller"))
                 .paths(PathSelectors.any())
                 .build();
     }

@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 /**
  * aho-corasick算法（又称AC自动机算法）
- * Created by berg on 2023/6/18.
  */
 @NotThreadSafe
 public class ACTrie {

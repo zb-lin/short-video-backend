@@ -6,9 +6,6 @@ import lombok.EqualsAndHashCode;
 
 /**
  * 敏感词
- *
- * @author zhaoyuhang
- * @since 2023/06/11
  */
 @Data
 @EqualsAndHashCode(callSuper = false)

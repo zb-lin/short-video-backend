@@ -86,3 +86,13 @@ create table if not exists comment_thumb
 ) comment '评论点赞';
 
 
+create table if not exists `sensitive_word`
+(
+    `word` varchar(255) collate utf8mb4_unicode_ci not null comment '敏感词'
+) engine = innodb
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci comment ='敏感词库';
+insert into `sensitive_word` (`word`)
+values ('tmd');
+insert into `sensitive_word` (`word`)
+values ('fuck');

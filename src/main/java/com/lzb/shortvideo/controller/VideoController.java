@@ -64,10 +64,6 @@ public class VideoController {
         video.setUserId(loginUser.getId());
         video.setFavourNum(0);
         video.setThumbNum(0);
-
-        // todo 上传文件并获得url
-        video.setUrl("");
-
         boolean result = videoService.save(video);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newVideoId = video.getId();
