@@ -10,6 +10,7 @@ import com.lzb.shortvideo.manager.CosManager;
 import com.lzb.shortvideo.model.dto.file.UploadFileRequest;
 import com.lzb.shortvideo.model.entity.User;
 import com.lzb.shortvideo.model.enums.FileUploadBizEnum;
+import com.lzb.shortvideo.model.vo.UploadFileVo;
 import com.lzb.shortvideo.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -52,8 +53,8 @@ public class FileController {
      * @return
      */
     @PostMapping("/upload")
-    public BaseResponse<String> uploadFile(@RequestPart("file") MultipartFile multipartFile,
-                                           UploadFileRequest uploadFileRequest, HttpServletRequest request) {
+    public BaseResponse<UploadFileVo> uploadFile(@RequestPart("file") MultipartFile multipartFile,
+                                                 UploadFileRequest uploadFileRequest, HttpServletRequest request) {
         String biz = uploadFileRequest.getBiz();
         FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
         if (fileUploadBizEnum == null) {
@@ -61,18 +62,21 @@ public class FileController {
         }
         validFile(multipartFile, fileUploadBizEnum);
         User loginUser = userService.getLoginUser(request);
+        Long userId = loginUser.getId();
         // 文件目录：根据业务、用户来划分
         String uuid = RandomStringUtils.randomAlphanumeric(8);
         String filename = uuid + "-" + multipartFile.getOriginalFilename();
-        String filepath = String.format("%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
+        String filepath = String.format("%s/%s/%s", fileUploadBizEnum.getValue(), userId, filename);
+        String thumbnailPath = String.format("%s/%s/%s.jpg", FileUploadBizEnum.THUMBNAIL, userId, filename);
         File file = null;
         try {
             // 上传文件
             file = File.createTempFile(filepath, null);
             multipartFile.transferTo(file);
-            cosManager.putObject(filepath, file);
+            cosManager.putObject(filepath, file, thumbnailPath);
             // 返回可访问地址
-            return ResultUtils.success(FileConstant.COS_HOST + filepath);
+            UploadFileVo uploadFileVo = new UploadFileVo(FileConstant.COS_HOST + filepath, FileConstant.COS_HOST + thumbnailPath);
+            return ResultUtils.success(uploadFileVo);
         } catch (Exception e) {
             log.error("file upload error, filepath = " + filepath, e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");

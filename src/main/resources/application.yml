@@ -1,3 +1,6 @@
+logging:
+  level:
+    org.springframework.web: INFO
 # 公共配置文件
 spring:
   application:
@@ -39,7 +42,7 @@ spring:
       max-request-size: -1
 server:
   address: 0.0.0.0
-  port: 8080
+  port: 8081
   servlet:
     context-path: /api
     # cookie 30 天过期
@@ -60,4 +63,4 @@ cos:
   client:
     accessKey: ${cos.client.accessKey}
     secretKey: ${cos.client.secretKey}
-    bucket: ${cos.client.bucket}
+    bucket: ${cos.client.bucketName}

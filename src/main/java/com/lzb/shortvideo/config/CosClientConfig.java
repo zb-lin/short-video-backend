@@ -28,11 +28,12 @@ public class CosClientConfig {
     /**
      * 桶名
      */
-    private String bucket;
+    private String bucketName;
+
 
     @Bean
     public String getUpToken() {
         Auth auth = Auth.create(accessKey, secretKey);
-        return auth.uploadToken(bucket);
+        return auth.uploadToken(bucketName);
     }
 }
