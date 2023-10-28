@@ -1,5 +1,6 @@
 package com.lzb.shortvideo.service.impl;
 
+import cn.hutool.bloomfilter.BitMapBloomFilter;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -11,6 +12,7 @@ import com.lzb.shortvideo.exception.ThrowUtils;
 import com.lzb.shortvideo.mapper.VideoFavourMapper;
 import com.lzb.shortvideo.mapper.VideoMapper;
 import com.lzb.shortvideo.mapper.VideoThumbMapper;
+import com.lzb.shortvideo.model.dto.recommend.UserPreference;
 import com.lzb.shortvideo.model.dto.video.VideoEsDTO;
 import com.lzb.shortvideo.model.dto.video.VideoQueryRequest;
 import com.lzb.shortvideo.model.entity.User;
@@ -27,6 +29,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.mahout.cf.taste.common.TasteException;
+import org.apache.mahout.cf.taste.impl.common.FastByIDMap;
+import org.apache.mahout.cf.taste.impl.model.GenericDataModel;
+import org.apache.mahout.cf.taste.impl.model.GenericPreference;
+import org.apache.mahout.cf.taste.impl.model.GenericUserPreferenceArray;
+import org.apache.mahout.cf.taste.impl.neighborhood.NearestNUserNeighborhood;
+import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
+import org.apache.mahout.cf.taste.impl.similarity.UncenteredCosineSimilarity;
+import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.model.PreferenceArray;
+import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
+import org.apache.mahout.cf.taste.recommender.RecommendedItem;
+import org.apache.mahout.cf.taste.recommender.Recommender;
+import org.apache.mahout.cf.taste.similarity.UserSimilarity;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.SortBuilder;
@@ -38,12 +54,16 @@ import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.lzb.shortvideo.constant.RedisConstant.VIDEO_RECOMMEND_KEY;
 
 @Slf4j
 @Service
@@ -64,6 +84,11 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
     @Resource
     private SensitiveWordBs sensitiveWordBs;
+
+    @Resource
+    private BitMapBloomFilter bloomFilter;
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public void validVideo(Video video, boolean add) {
@@ -86,7 +111,6 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "内容过长");
         }
         ThrowUtils.throwIf(sensitiveWordBs.hasSensitiveWord(content, title, tags), ErrorCode.SENSITIVE_WORD_ERROR);
-
     }
 
     /**
@@ -261,6 +285,60 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         if (CollectionUtils.isEmpty(videoList)) {
             return videoVOPage;
         }
+        videoVOPage.setRecords(getVideoVOList(videoList, request));
+        return videoVOPage;
+    }
+
+
+    /**
+     * 推荐和自己相似的用户看过的视频
+     *
+     * @param id
+     * @param request
+     * @return
+     */
+    @Override
+    public List<VideoVO> recommend(Long id, HttpServletRequest request) {
+        try {
+            // 从缓存中取
+            ValueOperations<String, Object> valueOperations = redisTemplate.opsForValue();
+            List<UserPreference> userPreferenceList = (List<UserPreference>) valueOperations.get(VIDEO_RECOMMEND_KEY);
+            // 创建数据模型
+            DataModel dataModel = this.createDataModel(userPreferenceList);
+            // 获取用户相似度
+            UserSimilarity similarity = new UncenteredCosineSimilarity(dataModel);
+            // 获取用户邻居
+            UserNeighborhood userNeighborhood = new NearestNUserNeighborhood(3, similarity, dataModel);
+            long[] ar = userNeighborhood.getUserNeighborhood(id);
+            // 构建推荐器
+            Recommender recommender = new GenericUserBasedRecommender(dataModel, userNeighborhood, similarity);
+            // 推荐商品
+            List<RecommendedItem> recommendedItems = recommender.recommend(id, 20);
+            List<Long> idList = recommendedItems.stream().map(RecommendedItem::getItemID).collect(Collectors.toList());
+            // 布隆过滤  去除重复视频
+            Iterator<Long> iterator = idList.iterator();
+            while (iterator.hasNext()) {
+                Long videoId = iterator.next();
+                String key = id + "-" + videoId;
+                if (bloomFilter.contains(key)) {
+                    iterator.remove();
+                } else {
+                    bloomFilter.add(key);
+                }
+            }
+            List<Video> videoList = this.listByIds(idList);
+            List<VideoVO> videoVOList = new ArrayList<>();
+            if (CollectionUtils.isEmpty(videoList)) {
+                return videoVOList;
+            }
+            videoVOList = getVideoVOList(videoList, request);
+            return videoVOList;
+        } catch (TasteException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "推荐算法出错");
+        }
+    }
+
+    private List<VideoVO> getVideoVOList(List<Video> videoList, HttpServletRequest request) {
         // 1. 关联查询用户信息
         Set<Long> userIdSet = videoList.stream().map(Video::getUserId).collect(Collectors.toSet());
         Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
@@ -286,7 +364,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             videoFavourList.forEach(videoFavour -> videoIdHasFavourMap.put(videoFavour.getVideoId(), true));
         }
         // 填充信息
-        List<VideoVO> videoVOList = videoList.stream().map(video -> {
+        return videoList.stream().map(video -> {
             VideoVO videoVO = VideoVO.objToVo(video);
             Long userId = video.getUserId();
             User user = null;
@@ -298,10 +376,23 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             videoVO.setHasFavour(videoIdHasFavourMap.getOrDefault(video.getId(), false));
             return videoVO;
         }).collect(Collectors.toList());
-        videoVOPage.setRecords(videoVOList);
-        return videoVOPage;
     }
 
+    private DataModel createDataModel(List<UserPreference> userPreferenceList) {
+        FastByIDMap<PreferenceArray> fastByIdMap = new FastByIDMap<>();
+        Map<Long, List<UserPreference>> map = userPreferenceList.stream().collect(Collectors.groupingBy(UserPreference::getUserId));
+        Collection<List<UserPreference>> list = map.values();
+        for (List<UserPreference> userPreferences : list) {
+            GenericPreference[] preferences = new GenericPreference[userPreferences.size()];
+            for (int i = 0; i < userPreferences.size(); i++) {
+                UserPreference userPreference = userPreferences.get(i);
+                GenericPreference item = new GenericPreference(userPreference.getUserId(), userPreference.getVideoId(), userPreference.getValue());
+                preferences[i] = item;
+            }
+            fastByIdMap.put(preferences[0].getUserID(), new GenericUserPreferenceArray(Arrays.asList(preferences)));
+        }
+        return new GenericDataModel(fastByIdMap);
+    }
 
 }
 

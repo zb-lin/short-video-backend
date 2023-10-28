@@ -8,6 +8,7 @@ import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.vo.VideoVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 
 public interface VideoService extends IService<Video> {
@@ -52,4 +53,6 @@ public interface VideoService extends IService<Video> {
      * @return
      */
     Page<VideoVO> getVideoVOPage(Page<Video> videoPage, HttpServletRequest request);
+
+    List<VideoVO> recommend(Long userId, HttpServletRequest request);
 }

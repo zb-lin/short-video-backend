@@ -29,7 +29,10 @@ public class CosClientConfig {
      * 桶名
      */
     private String bucketName;
-
+    /**
+     * COS 访问地址
+     */
+    private String cosHost;
 
     @Bean
     public String getUpToken() {

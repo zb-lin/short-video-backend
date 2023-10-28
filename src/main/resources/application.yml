@@ -23,6 +23,11 @@ spring:
     url: jdbc:mysql://${shortvideo.mysql.ip}:${shortvideo.mysql.port}/${shortvideo.mysql.db}
     username: ${shortvideo.mysql.username}
     password: ${shortvideo.mysql.password}
+    hikari:
+      minimum-idle: 3
+      maximum-pool-size: 10
+      max-lifetime: 30000   #不能小于30秒，否则默认回到1800秒
+      connection-test-query: SELECT 1
   # Redis 配置
   redis:
     database: 1
@@ -40,8 +45,13 @@ spring:
       # 大小限制
       max-file-size: -1
       max-request-size: -1
+  rabbitmq:
+    host: ${shortvideo.rabbitmq.host}
+    port: ${shortvideo.rabbitmq.port}
+    password: ${shortvideo.rabbitmq.password}
+    username: ${shortvideo.rabbitmq.username}
 server:
-  address: 0.0.0.0
+  address: localhost
   port: 8081
   servlet:
     context-path: /api
@@ -63,4 +73,12 @@ cos:
   client:
     accessKey: ${cos.client.accessKey}
     secretKey: ${cos.client.secretKey}
-    bucket: ${cos.client.bucketName}
+    bucketName: ${cos.client.bucketName}
+    cosHost: ${cos.client.cosHost}
+rabbitmq:
+  video:
+    host: ${shortvideo.rabbitmq.host}
+    exchangeName: ${shortvideo.rabbitmq.exchangeName}
+    exchangeType: ${shortvideo.rabbitmq.exchangeType}
+    queueName: ${shortvideo.rabbitmq.queueName}
+    routingKey: ${shortvideo.rabbitmq.routingKey}

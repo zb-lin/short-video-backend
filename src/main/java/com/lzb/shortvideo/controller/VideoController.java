@@ -212,4 +212,17 @@ public class VideoController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 个性化推荐
+     *
+     * @return
+     */
+    @GetMapping("/recommend")
+    public BaseResponse<List<VideoVO>> recommend(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        List<VideoVO> videoVOPage = videoService.recommend(loginUser.getId(), request);
+        return ResultUtils.success(videoVOPage);
+    }
+
+
 }

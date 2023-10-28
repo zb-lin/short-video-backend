@@ -1,12 +1,10 @@
 package com.lzb.shortvideo.model.vo;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
-@AllArgsConstructor
 public class UploadFileVo implements Serializable {
 
     /**
@@ -19,5 +17,12 @@ public class UploadFileVo implements Serializable {
     private String thumbnailPath;
     private static final long serialVersionUID = 1L;
 
-
+    public UploadFileVo(String cosHost, String filepath, String thumbnailPath) {
+        this.filepath = cosHost + filepath;
+        if (thumbnailPath != null) {
+            this.thumbnailPath = cosHost + thumbnailPath;
+        } else {
+            this.thumbnailPath = null;
+        }
+    }
 }
