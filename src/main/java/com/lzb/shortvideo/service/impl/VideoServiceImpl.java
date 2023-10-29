@@ -15,6 +15,7 @@ import com.lzb.shortvideo.mapper.VideoThumbMapper;
 import com.lzb.shortvideo.model.dto.recommend.UserPreference;
 import com.lzb.shortvideo.model.dto.video.VideoEsDTO;
 import com.lzb.shortvideo.model.dto.video.VideoQueryRequest;
+import com.lzb.shortvideo.model.dto.video.VideoSearchRequest;
 import com.lzb.shortvideo.model.entity.User;
 import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.entity.VideoFavour;
@@ -125,27 +126,10 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         if (videoQueryRequest == null) {
             return queryWrapper;
         }
-        String searchText = videoQueryRequest.getSearchText();
+        Long userId = videoQueryRequest.getUserId();
         String sortField = videoQueryRequest.getSortField();
         String sortOrder = videoQueryRequest.getSortOrder();
-        Long id = videoQueryRequest.getId();
-        String title = videoQueryRequest.getTitle();
-        String content = videoQueryRequest.getContent();
-        List<String> tagList = videoQueryRequest.getTags();
-        Long userId = videoQueryRequest.getUserId();
-
         // 拼接查询条件
-        if (StringUtils.isNotBlank(searchText)) {
-            queryWrapper.like("title", searchText).or().like("content", searchText);
-        }
-        queryWrapper.like(StringUtils.isNotBlank(title), "title", title);
-        queryWrapper.like(StringUtils.isNotBlank(content), "content", content);
-        if (CollectionUtils.isNotEmpty(tagList)) {
-            for (String tag : tagList) {
-                queryWrapper.like("tags", "\"" + tag + "\"");
-            }
-        }
-        queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
@@ -154,59 +138,27 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     }
 
     @Override
-    public Page<Video> searchFromEs(VideoQueryRequest videoQueryRequest) {
-        Long id = videoQueryRequest.getId();
-        String searchText = videoQueryRequest.getSearchText();
-        String title = videoQueryRequest.getTitle();
-        String content = videoQueryRequest.getContent();
-        List<String> tagList = videoQueryRequest.getTags();
-        List<String> orTagList = videoQueryRequest.getOrTags();
-        Long userId = videoQueryRequest.getUserId();
+    public Page<Video> searchFromEs(VideoSearchRequest videoSearchRequest) {
+        String searchText = videoSearchRequest.getSearchText();
+        String tag = videoSearchRequest.getTag();
         // es 起始页为 0
-        long current = videoQueryRequest.getCurrent() - 1;
-        long pageSize = videoQueryRequest.getPageSize();
-        String sortField = videoQueryRequest.getSortField();
-        String sortOrder = videoQueryRequest.getSortOrder();
+        long current = videoSearchRequest.getCurrent() - 1;
+        long pageSize = videoSearchRequest.getPageSize();
+        String sortField = videoSearchRequest.getSortField();
+        String sortOrder = videoSearchRequest.getSortOrder();
 
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
         // 过滤
         boolQueryBuilder.filter(QueryBuilders.termQuery("isDelete", 0));
-        if (id != null) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("id", id));
-        }
-        if (userId != null) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("userId", userId));
-        }
-        // 必须包含所有标签
-        if (CollectionUtils.isNotEmpty(tagList)) {
-            for (String tag : tagList) {
-                boolQueryBuilder.filter(QueryBuilders.termQuery("tags", tag));
-            }
-        }
-        // 包含任何一个标签即可
-        if (CollectionUtils.isNotEmpty(orTagList)) {
-            BoolQueryBuilder orTagBoolQueryBuilder = QueryBuilders.boolQuery();
-            for (String tag : orTagList) {
-                orTagBoolQueryBuilder.should(QueryBuilders.termQuery("tags", tag));
-            }
-            orTagBoolQueryBuilder.minimumShouldMatch(1);
-            boolQueryBuilder.filter(orTagBoolQueryBuilder);
+        // 必须包含的标签
+        if (StringUtils.isNotBlank(tag)) {
+            boolQueryBuilder.filter(QueryBuilders.termQuery("tags", tag));
         }
         // 按关键词检索
         if (StringUtils.isNotBlank(searchText)) {
             boolQueryBuilder.should(QueryBuilders.matchQuery("title", searchText));
-            boolQueryBuilder.should(QueryBuilders.matchQuery("description", searchText));
             boolQueryBuilder.should(QueryBuilders.matchQuery("content", searchText));
-            boolQueryBuilder.minimumShouldMatch(1);
-        }
-        // 按标题检索
-        if (StringUtils.isNotBlank(title)) {
-            boolQueryBuilder.should(QueryBuilders.matchQuery("title", title));
-            boolQueryBuilder.minimumShouldMatch(1);
-        }
-        // 按内容检索
-        if (StringUtils.isNotBlank(content)) {
-            boolQueryBuilder.should(QueryBuilders.matchQuery("content", content));
+            boolQueryBuilder.should(QueryBuilders.matchQuery("tags", searchText));
             boolQueryBuilder.minimumShouldMatch(1);
         }
         // 排序
@@ -326,7 +278,12 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
                     bloomFilter.add(key);
                 }
             }
-            List<Video> videoList = this.listByIds(idList);
+            List<Video> videoList = new ArrayList<>();
+            // 无推荐视频
+            if (CollectionUtils.isNotEmpty(idList)) {
+                videoList = this.listByIds(idList);
+            }
+            // todo 无推荐补偿
             List<VideoVO> videoVOList = new ArrayList<>();
             if (CollectionUtils.isEmpty(videoList)) {
                 return videoVOList;

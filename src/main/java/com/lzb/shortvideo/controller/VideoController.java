@@ -8,12 +8,15 @@ import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.common.ResultUtils;
 import com.lzb.shortvideo.exception.BusinessException;
 import com.lzb.shortvideo.exception.ThrowUtils;
+import com.lzb.shortvideo.manager.CosManager;
 import com.lzb.shortvideo.model.dto.video.VideoAddRequest;
 import com.lzb.shortvideo.model.dto.video.VideoQueryRequest;
+import com.lzb.shortvideo.model.dto.video.VideoSearchRequest;
 import com.lzb.shortvideo.model.dto.video.VideoUpdateRequest;
 import com.lzb.shortvideo.model.entity.User;
 import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.vo.VideoVO;
+import com.lzb.shortvideo.mq.VideoDeleteMessageProducer;
 import com.lzb.shortvideo.service.UserService;
 import com.lzb.shortvideo.service.VideoService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +41,10 @@ public class VideoController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private CosManager cosManager;
+    @Resource
+    private VideoDeleteMessageProducer videoDeleteMessageProducer;
     private final static Gson GSON = new Gson();
 
 
@@ -92,33 +99,14 @@ public class VideoController {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         boolean b = videoService.removeById(id);
-        // todo 删除实际视频
-
-
+        // 消息队列 删除实际文件
+        videoDeleteMessageProducer.sendMessage(String.valueOf(id));
         return ResultUtils.success(b);
     }
 
 
     /**
-     * 根据 id 获取
-     *
-     * @param id
-     * @return
-     */
-    @GetMapping("/get/vo")
-    public BaseResponse<VideoVO> getVideoVOById(long id, HttpServletRequest request) {
-        if (id <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Video video = videoService.getById(id);
-        if (video == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-        return ResultUtils.success(videoService.getVideoVO(video, request));
-    }
-
-    /**
-     * 分页获取列表（封装类）
+     * 分页获取指定用户创建的资源列表
      *
      * @param videoQueryRequest
      * @param request
@@ -127,30 +115,14 @@ public class VideoController {
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<VideoVO>> listVideoVOByPage(@RequestBody VideoQueryRequest videoQueryRequest,
                                                          HttpServletRequest request) {
-        long current = videoQueryRequest.getCurrent();
-        long size = videoQueryRequest.getPageSize();
-        // 限制爬虫
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Video> videoPage = videoService.page(new Page<>(current, size),
-                videoService.getQueryWrapper(videoQueryRequest));
-        return ResultUtils.success(videoService.getVideoVOPage(videoPage, request));
-    }
-
-    /**
-     * 分页获取当前用户创建的资源列表
-     *
-     * @param videoQueryRequest
-     * @param request
-     * @return
-     */
-    @PostMapping("/my/list/page/vo")
-    public BaseResponse<Page<VideoVO>> listMyVideoVOByPage(@RequestBody VideoQueryRequest videoQueryRequest,
-                                                           HttpServletRequest request) {
         if (videoQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User loginUser = userService.getLoginUser(request);
-        videoQueryRequest.setUserId(loginUser.getId());
+        // 未指定查自己
+        if (videoQueryRequest.getUserId() == null) {
+            User loginUser = userService.getLoginUser(request);
+            videoQueryRequest.setUserId(loginUser.getId());
+        }
         long current = videoQueryRequest.getCurrent();
         long size = videoQueryRequest.getPageSize();
         // 限制爬虫
@@ -160,22 +132,22 @@ public class VideoController {
         return ResultUtils.success(videoService.getVideoVOPage(videoPage, request));
     }
 
-    // endregion
 
     /**
      * 分页搜索（从 ES 查询，封装类）
+     * 搜索框  搜索作者???(分类)   标题 内容  标签  | 侧边栏 限定一个tag    |  作者主页 限定 userId
      *
-     * @param videoQueryRequest
+     * @param videoSearchRequest
      * @param request
      * @return
      */
     @PostMapping("/search/page/vo")
-    public BaseResponse<Page<VideoVO>> searchVideoVOByPage(@RequestBody VideoQueryRequest videoQueryRequest,
+    public BaseResponse<Page<VideoVO>> searchVideoVOByPage(@RequestBody VideoSearchRequest videoSearchRequest,
                                                            HttpServletRequest request) {
-        long size = videoQueryRequest.getPageSize();
+        long size = videoSearchRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Video> videoPage = videoService.searchFromEs(videoQueryRequest);
+        Page<Video> videoPage = videoService.searchFromEs(videoSearchRequest);
         return ResultUtils.success(videoService.getVideoVOPage(videoPage, request));
     }
 

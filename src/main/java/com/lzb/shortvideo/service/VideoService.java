@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lzb.shortvideo.model.dto.video.VideoQueryRequest;
+import com.lzb.shortvideo.model.dto.video.VideoSearchRequest;
 import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.vo.VideoVO;
 
@@ -31,10 +32,10 @@ public interface VideoService extends IService<Video> {
     /**
      * 从 ES 查询
      *
-     * @param videoQueryRequest
+     * @param videoSearchRequest
      * @return
      */
-    Page<Video> searchFromEs(VideoQueryRequest videoQueryRequest);
+    Page<Video> searchFromEs(VideoSearchRequest videoSearchRequest);
 
     /**
      * 获取视频封装

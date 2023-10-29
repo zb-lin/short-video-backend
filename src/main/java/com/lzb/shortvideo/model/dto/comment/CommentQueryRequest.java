@@ -13,16 +13,17 @@ import java.io.Serializable;
 @Data
 public class CommentQueryRequest extends PageRequest implements Serializable {
 
-    /**
-     * id
-     */
-    private Long id;
-
 
     /**
      * 创建用户 id
      */
     private Long userId;
+
+
+    /**
+     * 视频id
+     */
+    private Long videoId;
 
     private static final long serialVersionUID = 1L;
 }

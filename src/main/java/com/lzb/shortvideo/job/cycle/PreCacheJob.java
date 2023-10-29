@@ -42,15 +42,15 @@ public class PreCacheJob {
     /**
      * 每一小时执行任务
      */
-    @Scheduled(cron = "* * 0/1 * * ?")
-    public void doCacheRecommendUser() {
+    @Scheduled(cron = "0 0 */1 * * ?")
+    public void doCacheRecommend() {
         RLock lock = redissonClient.getLock(VIDEO_RECOMMEND_LOCK);
         try {
             if (lock.tryLock(0, -1, TimeUnit.MILLISECONDS)) {
                 List<UserPreference> allUserPreference = getAllUserPreference();
                 ValueOperations<String, Object> valueOperations = redisTemplate.opsForValue();
                 try {
-                    valueOperations.set(VIDEO_RECOMMEND_KEY, allUserPreference, 30000, TimeUnit.MILLISECONDS);
+                    valueOperations.set(VIDEO_RECOMMEND_KEY, allUserPreference);
                 } catch (Exception e) {
                     log.error("redis set key error", e);
                 }
@@ -93,6 +93,53 @@ public class PreCacheJob {
             userPreference.setVideoId(Long.valueOf(videoId));
             userPreference.setValue(map.get(key).floatValue());
             userPreferenceList.add(userPreference);
+        });
+        return userPreferenceList;
+    }
+
+    @Deprecated
+    private List<UserPreference> getAllUserPreferenceByLongMap() {
+        // 查询每一个用户视频收藏情况
+        List<VideoFavour> videoFavours = videoFavourService.list();
+        List<VideoThumb> videoThumbs = videoThumbService.list();
+        Map<Long, Map<Long, Integer>> map = new HashMap<>();
+        Map<Long, Integer> stringMap = new HashMap<>();
+        videoFavours.forEach(videoFavour -> {
+            Long videoId = videoFavour.getVideoId();
+            Long userId = videoFavour.getUserId();
+            stringMap.put(videoId, 4);
+            map.put(userId, stringMap);
+            stringMap.clear();
+        });
+        videoThumbs.forEach(videoThumb -> {
+            Long videoId = videoThumb.getVideoId();
+            Long userId = videoThumb.getUserId();
+            Map<Long, Integer> longIntegerMap = map.getOrDefault(userId, null);
+            if (longIntegerMap == null) {
+                stringMap.put(videoId, 2);
+                map.put(userId, stringMap);
+                stringMap.clear();
+            } else {
+                Integer userIdByMap = longIntegerMap.get(videoId);
+                if (userIdByMap != null) {
+                    longIntegerMap.put(videoId, 6);
+                } else {
+                    longIntegerMap.put(videoId, 2);
+                }
+                map.put(userId, longIntegerMap);
+            }
+        });
+        List<UserPreference> userPreferenceList = new ArrayList<>();
+        map.keySet().forEach(keyKey -> {
+            Map<Long, Integer> longIntegerMap = map.get(keyKey);
+            longIntegerMap.keySet().forEach(valueKey -> {
+                Integer value = longIntegerMap.get(valueKey);
+                UserPreference userPreference = new UserPreference();
+                userPreference.setUserId(keyKey);
+                userPreference.setVideoId(valueKey);
+                userPreference.setValue(Float.valueOf(value));
+                userPreferenceList.add(userPreference);
+            });
         });
         return userPreferenceList;
     }

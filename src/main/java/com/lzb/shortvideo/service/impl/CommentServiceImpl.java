@@ -76,13 +76,13 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         if (commentQueryRequest == null) {
             return queryWrapper;
         }
-        Long id = commentQueryRequest.getId();
+        Long videoId = commentQueryRequest.getVideoId();
         Long userId = commentQueryRequest.getUserId();
         String sortField = commentQueryRequest.getSortField();
         String sortOrder = commentQueryRequest.getSortOrder();
 
         // 拼接查询条件
-        queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(videoId), "id", videoId);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),

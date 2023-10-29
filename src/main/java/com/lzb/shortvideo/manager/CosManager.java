@@ -3,10 +3,13 @@ package com.lzb.shortvideo.manager;
 import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.config.CosClientConfig;
 import com.lzb.shortvideo.exception.BusinessException;
+import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.enums.FileUploadBizEnum;
+import com.lzb.shortvideo.service.VideoService;
 import com.qiniu.common.QiniuException;
 import com.qiniu.http.Response;
 import com.qiniu.processing.OperationManager;
+import com.qiniu.storage.BucketManager;
 import com.qiniu.storage.Configuration;
 import com.qiniu.storage.Region;
 import com.qiniu.storage.UploadManager;
@@ -31,6 +34,8 @@ public class CosManager {
 
     @Resource
     private CosClientConfig cosClientConfig;
+    @Resource
+    private VideoService videoService;
     private static final String FOPS = "vframe/jpg/offset/1|saveas/%s";
 
     private static final String PIPELINE = "default.sys";
@@ -104,4 +109,26 @@ public class CosManager {
             }
         }
     }
+
+    /**
+     * 删除对象
+     *
+     * @return
+     */
+    public void deleteObject(long id) {
+        //构造一个带指定 Region 对象的配置类
+        Configuration cfg = new Configuration(Region.region2());
+        Video video = videoService.getById(id);
+        String url = video.getUrl();
+        int index = url.lastIndexOf('/');
+        String key = url.substring(index + 1);
+        Auth auth = Auth.create(cosClientConfig.getAccessKey(), cosClientConfig.getSecretKey());
+        BucketManager bucketManager = new BucketManager(auth, cfg);
+        try {
+            bucketManager.delete(cosClientConfig.getBucketName(), key);
+        } catch (QiniuException ex) {
+            log.error("code={}, response={}", ex.code(), ex.response);
+        }
+    }
+
 }

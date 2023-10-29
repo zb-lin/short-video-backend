@@ -15,7 +15,7 @@ public class BloomFilterConfig {
 
     @Bean
     public BitMapBloomFilter addBitMapBloomFilter() {
-        return new BitMapBloomFilter(1000000);
+        return new BitMapBloomFilter(10);
     }
 
 }

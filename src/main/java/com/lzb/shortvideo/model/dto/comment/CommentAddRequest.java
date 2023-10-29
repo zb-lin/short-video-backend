@@ -12,6 +12,11 @@ public class CommentAddRequest implements Serializable {
      */
     private String content;
 
+    /**
+     * 视频id
+     */
+    private Long videoId;
+
     private static final long serialVersionUID = 1L;
 
 }

@@ -10,20 +10,26 @@ import com.rabbitmq.client.ConnectionFactory;
 public class InitMq {
 
     public static void main(String[] args) {
+        InitMq initMq = new InitMq();
+        initMq.initDelete();
+    }
+
+    public void initDelete(){
         try {
             ConnectionFactory factory = new ConnectionFactory();
             factory.setHost("localhost");
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
-            String EXCHANGE_NAME = "video_exchange";
+            String EXCHANGE_NAME = "video_delete_exchange";
             channel.exchangeDeclare(EXCHANGE_NAME, "direct");
 
             // 创建队列，随机分配一个队列名称
-            String queueName = "video_queue";
+            String queueName = "video_delete_queue";
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, EXCHANGE_NAME, "my_routingKey");
+            channel.queueBind(queueName, EXCHANGE_NAME, "video_delete_routingKey");
         } catch (Exception e) {
 
         }
     }
+
 }

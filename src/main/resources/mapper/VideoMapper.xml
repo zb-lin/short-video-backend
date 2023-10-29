@@ -24,4 +24,9 @@
         thumbNum,favourNum,createTime,
         updateTime,isDelete
     </sql>
+    <select id="listVideoWithDelete" resultType="com.lzb.shortvideo.model.entity.Video">
+        select *
+        from video
+        where updateTime >= #{fiveMinutesAgoDate}
+    </select>
 </mapper>

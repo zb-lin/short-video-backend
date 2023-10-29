@@ -3,6 +3,7 @@ package com.lzb.shortvideo.service;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lzb.shortvideo.model.dto.videofavour.VideoFavourQueryRequest;
 import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -38,4 +39,5 @@ public interface VideoFavourService extends IService<VideoFavour> {
      * @return
      */
     int doVideoFavourInner(long userId, long videoId);
+
 }

@@ -82,3 +82,9 @@ rabbitmq:
     exchangeType: ${shortvideo.rabbitmq.exchangeType}
     queueName: ${shortvideo.rabbitmq.queueName}
     routingKey: ${shortvideo.rabbitmq.routingKey}
+custom:
+  elasticsearch:
+    host: ${shortvideo.elasticsearch.ip}
+    port: ${shortvideo.elasticsearch.port}
+    username: ${shortvideo.elasticsearch.username}
+    password: ${shortvideo.elasticsearch.password}

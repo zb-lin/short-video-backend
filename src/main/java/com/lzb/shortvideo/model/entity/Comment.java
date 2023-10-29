@@ -20,6 +20,16 @@ public class Comment implements Serializable {
     private Long id;
 
     /**
+     * 创建用户 id
+     */
+    private Long userId;
+
+    /**
+     * 视频 id
+     */
+    private Long videoId;
+
+    /**
      * 内容
      */
     private String content;
@@ -29,10 +39,6 @@ public class Comment implements Serializable {
      */
     private Integer thumbNum;
 
-    /**
-     * 创建用户 id
-     */
-    private Long userId;
 
     /**
      * 创建时间

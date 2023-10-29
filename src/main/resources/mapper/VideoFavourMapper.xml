@@ -20,7 +20,7 @@
             resultType="com.lzb.shortvideo.model.entity.Video">
         select v.*
         from video v
-                 join (select videoId from video_favour where userId = #{favourUserId}) pf
-                      on v.id = pf.videoId ${ew.customSqlSegment}
+                 join (select videoId from video_favour where userId = #{favourUserId}) vf
+                      on v.id = vf.videoId ${ew.customSqlSegment}
     </select>
 </mapper>

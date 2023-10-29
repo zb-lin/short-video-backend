@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.exception.BusinessException;
+import com.lzb.shortvideo.model.dto.videofavour.VideoFavourQueryRequest;
 import com.lzb.shortvideo.model.entity.User;
 import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.entity.VideoFavour;
@@ -103,6 +104,7 @@ public class VideoFavourServiceImpl extends ServiceImpl<VideoFavourMapper, Video
             }
         }
     }
+
 
 
 }

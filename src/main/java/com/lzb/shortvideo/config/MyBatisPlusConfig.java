@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
  * MyBatis Plus 配置
  */
 @Configuration
-@MapperScan("com.lzb.oj.mapper")
+@MapperScan("com.lzb.shortvideo.mapper")
 public class MyBatisPlusConfig {
 
     /**

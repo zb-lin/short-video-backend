@@ -103,7 +103,7 @@ public class FileController {
      *
      * @return
      */
-    @PostMapping("/vframe")
+//    @PostMapping("/vframe")
     public void vframe(@RequestBody OperationStatus.OperationResult operationResult) {
         log.info("所执行的云处理操作命令状态码code={}", operationResult.code);
         log.info("所执行的云处理操作命令状态描述desc={}", operationResult.desc);

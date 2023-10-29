@@ -39,7 +39,6 @@ public class CommentController {
     @Resource
     private UserService userService;
 
-    private final static Gson GSON = new Gson();
 
 
     /**
