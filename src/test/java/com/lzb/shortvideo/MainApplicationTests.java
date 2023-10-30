@@ -5,18 +5,22 @@ import com.lzb.shortvideo.model.entity.VideoFavour;
 import com.lzb.shortvideo.model.entity.VideoThumb;
 import com.lzb.shortvideo.service.VideoFavourService;
 import com.lzb.shortvideo.service.VideoThumbService;
-import javafx.util.Pair;
+import com.lzb.shortvideo.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.lzb.shortvideo.constant.RedisConstant.VIDEO_RECOMMEND_KEY;
+import static com.lzb.shortvideo.constant.RedisConstant.VIDEO_RECOMMEND_LOCK;
 
 /**
  * 主类测试
@@ -25,25 +29,34 @@ import java.util.Map;
 @Slf4j
 class MainApplicationTests {
     @Resource
-    private RedisTemplate<String, Object> redisTemplate;
-    @Resource
     private RedissonClient redissonClient;
     @Resource
     private VideoFavourService videoFavourService;
     @Resource
     private VideoThumbService videoThumbService;
 
-    @Test
-    void testJob() {
-        doCacheRecommendUser();
-    }
-
     /**
      * 每一小时执行任务
      */
-    public void doCacheRecommendUser() {
-        Pair<Long, Long> pair = new Pair<>(1L, 1L);
-        Pair<Long, Long> pair1 = new Pair<>(1L, 1L);
+    @Test
+    public void doCacheRecommend() {
+        RLock lock = redissonClient.getLock(VIDEO_RECOMMEND_LOCK);
+        try {
+            if (lock.tryLock(0, -1, TimeUnit.MILLISECONDS)) {
+                List<UserPreference> allUserPreference = getAllUserPreference();
+                try {
+                    RedisUtils.set(VIDEO_RECOMMEND_KEY, allUserPreference);
+                } catch (Exception e) {
+                    log.error("redis set key error", e);
+                }
+            }
+        } catch (InterruptedException e) {
+            log.error("doCacheRecommendUser error");
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
     }
 
     private List<UserPreference> getAllUserPreference() {

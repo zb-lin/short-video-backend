@@ -1,6 +1,7 @@
 package com.lzb.shortvideo.controller;
 
 import cn.hutool.core.io.FileUtil;
+import com.lzb.shortvideo.annotation.FrequencyControl;
 import com.lzb.shortvideo.common.BaseResponse;
 import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.common.ResultUtils;
@@ -10,7 +11,7 @@ import com.lzb.shortvideo.manager.CosManager;
 import com.lzb.shortvideo.model.dto.file.UploadFileRequest;
 import com.lzb.shortvideo.model.entity.User;
 import com.lzb.shortvideo.model.enums.FileUploadBizEnum;
-import com.lzb.shortvideo.model.vo.UploadFileVo;
+import com.lzb.shortvideo.model.vo.UploadFileVO;
 import com.lzb.shortvideo.service.UserService;
 import com.qiniu.processing.OperationStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +62,8 @@ public class FileController {
      * @return
      */
     @PostMapping("/upload")
-    public BaseResponse<UploadFileVo> uploadFile(@RequestPart("file") MultipartFile multipartFile,
+    @FrequencyControl(time = 10, count = 2, target = FrequencyControl.Target.UID)
+    public BaseResponse<UploadFileVO> uploadFile(@RequestPart("file") MultipartFile multipartFile,
                                                  UploadFileRequest uploadFileRequest, HttpServletRequest request) {
         String biz = uploadFileRequest.getBiz();
         FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
@@ -90,7 +92,7 @@ public class FileController {
             }, threadPoolExecutor);
             // 返回可访问地址
             String cosHost = cosClientConfig.getCosHost();
-            UploadFileVo uploadFileVo = new UploadFileVo(cosHost, filepath, thumbnailPath);
+            UploadFileVO uploadFileVo = new UploadFileVO(cosHost, filepath, thumbnailPath);
             return ResultUtils.success(uploadFileVo);
         } catch (Exception e) {
             log.error("file upload error, filepath = " + filepath, e);

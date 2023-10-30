@@ -25,6 +25,10 @@ public class VideoAddRequest implements Serializable {
      */
     private String url;
     /**
+     * 封面
+     */
+    private String cover;
+    /**
      * 标签列表（json 数组）
      */
     private List<String> tags;

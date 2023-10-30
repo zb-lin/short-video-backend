@@ -22,8 +22,10 @@ import com.lzb.shortvideo.model.entity.VideoFavour;
 import com.lzb.shortvideo.model.entity.VideoThumb;
 import com.lzb.shortvideo.model.vo.UserVO;
 import com.lzb.shortvideo.model.vo.VideoVO;
+import com.lzb.shortvideo.service.UserFollowService;
 import com.lzb.shortvideo.service.UserService;
 import com.lzb.shortvideo.service.VideoService;
+import com.lzb.shortvideo.utils.RedisUtils;
 import com.lzb.shortvideo.utils.SqlUtils;
 import com.lzb.shortvideo.utils.sensitive.sensitiveWord.SensitiveWordBs;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +58,6 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -74,7 +75,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
 
     @Resource
     private UserService userService;
-
+    @Resource
+    private UserFollowService userFollowService;
     @Resource
     private VideoThumbMapper videoThumbMapper;
 
@@ -88,8 +90,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
 
     @Resource
     private BitMapBloomFilter bloomFilter;
-    @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+
 
     @Override
     public void validVideo(Video video, boolean add) {
@@ -253,8 +254,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     public List<VideoVO> recommend(Long id, HttpServletRequest request) {
         try {
             // 从缓存中取
-            ValueOperations<String, Object> valueOperations = redisTemplate.opsForValue();
-            List<UserPreference> userPreferenceList = (List<UserPreference>) valueOperations.get(VIDEO_RECOMMEND_KEY);
+            List<UserPreference> userPreferenceList = RedisUtils.getList(VIDEO_RECOMMEND_KEY, UserPreference.class);
             // 创建数据模型
             DataModel dataModel = this.createDataModel(userPreferenceList);
             // 获取用户相似度
@@ -267,6 +267,11 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             // 推荐商品
             List<RecommendedItem> recommendedItems = recommender.recommend(id, 20);
             List<Long> idList = recommendedItems.stream().map(RecommendedItem::getItemID).collect(Collectors.toList());
+
+            // 获得关注者的视频列表
+            List<Long> followVideoIdList = userFollowService.getFollowVideoIdList(id);
+            idList.addAll(followVideoIdList);
+
             // 布隆过滤  去除重复视频
             Iterator<Long> iterator = idList.iterator();
             while (iterator.hasNext()) {
@@ -337,7 +342,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
 
     private DataModel createDataModel(List<UserPreference> userPreferenceList) {
         FastByIDMap<PreferenceArray> fastByIdMap = new FastByIDMap<>();
-        Map<Long, List<UserPreference>> map = userPreferenceList.stream().collect(Collectors.groupingBy(UserPreference::getUserId));
+        Map<Long, List<UserPreference>> map = userPreferenceList.stream()
+                .collect(Collectors.groupingBy(UserPreference::getUserId));
         Collection<List<UserPreference>> list = map.values();
         for (List<UserPreference> userPreferences : list) {
             GenericPreference[] preferences = new GenericPreference[userPreferences.size()];

@@ -1,14 +1,16 @@
 package com.lzb.shortvideo.annotation;
 
-import java.lang.annotation.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 频控注解
  */
-@Repeatable(FrequencyControlContainer.class)//可重复
-@Retention(RetentionPolicy.RUNTIME)//运行时生效
-@Target(ElementType.METHOD)//作用在方法上
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
 public @interface FrequencyControl {
     /**
      * key的前缀,默认取方法全限定名，除非我们在不同方法上对同一个资源做频控，就自己指定

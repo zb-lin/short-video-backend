@@ -8,9 +8,10 @@ import java.util.Date;
 
 /**
  * 视频
+ *
  * @TableName video
  */
-@TableName(value ="video")
+@TableName(value = "video")
 @Data
 public class Video implements Serializable {
     /**
@@ -38,6 +39,10 @@ public class Video implements Serializable {
      * 视频url
      */
     private String url;
+    /**
+     * 封面
+     */
+    private String cover;
 
     /**
      * 标签列表（json 数组）

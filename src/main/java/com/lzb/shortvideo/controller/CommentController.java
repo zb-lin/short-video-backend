@@ -1,7 +1,7 @@
 package com.lzb.shortvideo.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.gson.Gson;
+import com.lzb.shortvideo.annotation.FrequencyControl;
 import com.lzb.shortvideo.common.BaseResponse;
 import com.lzb.shortvideo.common.DeleteRequest;
 import com.lzb.shortvideo.common.ErrorCode;
@@ -40,7 +40,6 @@ public class CommentController {
     private UserService userService;
 
 
-
     /**
      * 创建
      *
@@ -49,6 +48,7 @@ public class CommentController {
      * @return
      */
     @PostMapping("/add")
+    @FrequencyControl(time = 10, count = 10, target = FrequencyControl.Target.UID)
     public BaseResponse<Long> addComment(@RequestBody CommentAddRequest commentAddRequest, HttpServletRequest request) {
         if (commentAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

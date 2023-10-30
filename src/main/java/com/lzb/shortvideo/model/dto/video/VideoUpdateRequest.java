@@ -20,7 +20,10 @@ public class VideoUpdateRequest implements Serializable {
      * 标题
      */
     private String title;
-
+    /**
+     * 封面
+     */
+    private String cover;
     /**
      * 内容
      */

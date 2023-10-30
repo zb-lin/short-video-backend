@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class UploadFileVo implements Serializable {
+public class UploadFileVO implements Serializable {
 
     /**
      * 文件路径
@@ -17,7 +17,7 @@ public class UploadFileVo implements Serializable {
     private String thumbnailPath;
     private static final long serialVersionUID = 1L;
 
-    public UploadFileVo(String cosHost, String filepath, String thumbnailPath) {
+    public UploadFileVO(String cosHost, String filepath, String thumbnailPath) {
         this.filepath = cosHost + filepath;
         if (thumbnailPath != null) {
             this.thumbnailPath = cosHost + thumbnailPath;

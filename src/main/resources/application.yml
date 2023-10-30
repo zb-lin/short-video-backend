@@ -33,7 +33,7 @@ spring:
     database: 1
     host: ${shortvideo.redis.host}
     port: ${shortvideo.redis.port}
-    timeout: 5000
+    timeout: 1800000
   # Elasticsearch 配置
   elasticsearch:
     uris: http://${shortvideo.elasticsearch.ip}:${shortvideo.elasticsearch.port}
@@ -50,6 +50,9 @@ spring:
     port: ${shortvideo.rabbitmq.port}
     password: ${shortvideo.rabbitmq.password}
     username: ${shortvideo.rabbitmq.username}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: true
 server:
   address: localhost
   port: 8081
