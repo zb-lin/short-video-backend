@@ -12,11 +12,14 @@ import com.lzb.shortvideo.model.dto.comment.CommentAddRequest;
 import com.lzb.shortvideo.model.dto.comment.CommentQueryRequest;
 import com.lzb.shortvideo.model.entity.Comment;
 import com.lzb.shortvideo.model.entity.User;
+import com.lzb.shortvideo.model.entity.Video;
 import com.lzb.shortvideo.model.vo.CommentVO;
 import com.lzb.shortvideo.service.CommentService;
 import com.lzb.shortvideo.service.UserService;
+import com.lzb.shortvideo.service.VideoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,6 +42,8 @@ public class CommentController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private VideoService videoService;
 
     /**
      * 创建
@@ -49,6 +54,7 @@ public class CommentController {
      */
     @PostMapping("/add")
     @FrequencyControl(time = 10, count = 10, target = FrequencyControl.Target.UID)
+    @Transactional
     public BaseResponse<Long> addComment(@RequestBody CommentAddRequest commentAddRequest, HttpServletRequest request) {
         if (commentAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -60,6 +66,9 @@ public class CommentController {
         comment.setUserId(loginUser.getId());
         comment.setThumbNum(0);
         boolean result = commentService.save(comment);
+        Video video = videoService.getById(comment.getVideoId());
+        video.setCommentNum(video.getCommentNum() + 1);
+        videoService.updateById(video);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newCommentId = comment.getId();
         return ResultUtils.success(newCommentId);
@@ -73,6 +82,7 @@ public class CommentController {
      * @return
      */
     @PostMapping("/delete")
+    @Transactional
     public BaseResponse<Boolean> deleteComment(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -87,6 +97,9 @@ public class CommentController {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         boolean b = commentService.removeById(id);
+        Video video = videoService.getById(oldComment.getVideoId());
+        video.setCommentNum(video.getCommentNum() - 1);
+        videoService.updateById(video);
         return ResultUtils.success(b);
     }
 

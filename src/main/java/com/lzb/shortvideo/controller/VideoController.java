@@ -1,5 +1,6 @@
 package com.lzb.shortvideo.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.lzb.shortvideo.common.BaseResponse;
@@ -71,6 +72,7 @@ public class VideoController {
         video.setUserId(loginUser.getId());
         video.setFavourNum(0);
         video.setThumbNum(0);
+        video.setCommentNum(0);
         boolean result = videoService.save(video);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newVideoId = video.getId();
@@ -191,7 +193,13 @@ public class VideoController {
      */
     @GetMapping("/recommend")
     public BaseResponse<List<VideoVO>> recommend(HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getLoginUserPermitNull(request);
+        if (loginUser == null) {
+            QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+            Page<Video> videoPage = videoService.page(new Page<>(1, 10),
+                    queryWrapper);
+            return ResultUtils.success(videoService.getVideoVOPage(videoPage, request).getRecords());
+        }
         List<VideoVO> videoVOPage = videoService.recommend(loginUser.getId(), request);
         return ResultUtils.success(videoVOPage);
     }

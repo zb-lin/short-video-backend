@@ -67,6 +67,11 @@ public class VideoEsDTO implements Serializable {
     private Integer favourNum;
 
     /**
+     * 评论数
+     */
+    private Integer commentNum;
+
+    /**
      * 创建时间
      */
     @Field(index = false, store = true, type = FieldType.Date, format = {}, pattern = DATE_TIME_PATTERN)

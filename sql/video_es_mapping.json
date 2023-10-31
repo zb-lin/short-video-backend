@@ -38,6 +38,9 @@
       "favourNum": {
         "type": "long"
       },
+      "commentNum": {
+        "type": "long"
+      },
       "userId": {
         "type": "keyword"
       },

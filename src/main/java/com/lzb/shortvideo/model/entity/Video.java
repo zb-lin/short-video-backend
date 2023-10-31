@@ -60,6 +60,11 @@ public class Video implements Serializable {
     private Integer favourNum;
 
     /**
+     * 评论数
+     */
+    private Integer commentNum;
+
+    /**
      * 创建时间
      */
     private Date createTime;

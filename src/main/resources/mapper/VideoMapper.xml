@@ -14,6 +14,7 @@
         <result property="tags" column="tags" jdbcType="VARCHAR"/>
         <result property="thumbNum" column="thumbNum" jdbcType="INTEGER"/>
         <result property="favourNum" column="favourNum" jdbcType="INTEGER"/>
+        <result property="commentNum" column="commentNum" jdbcType="INTEGER"/>
         <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
         <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
@@ -22,7 +23,7 @@
     <sql id="Base_Column_List">
         id,userId,title,
         content,url,cover,tags,
-        thumbNum,favourNum,createTime,
+        thumbNum,favourNum,commentNum,createTime,
         updateTime,isDelete
     </sql>
     <select id="listVideoWithDelete" resultType="com.lzb.shortvideo.model.entity.Video">

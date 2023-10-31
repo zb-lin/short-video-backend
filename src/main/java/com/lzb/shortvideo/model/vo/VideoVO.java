@@ -48,7 +48,10 @@ public class VideoVO implements Serializable {
      * 收藏数
      */
     private Integer favourNum;
-
+    /**
+     * 评论数
+     */
+    private Integer commentNum;
     /**
      * 创建用户 id
      */

@@ -57,7 +57,6 @@ import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -260,35 +259,36 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             // 获取用户相似度
             UserSimilarity similarity = new UncenteredCosineSimilarity(dataModel);
             // 获取用户邻居
-            UserNeighborhood userNeighborhood = new NearestNUserNeighborhood(3, similarity, dataModel);
+            UserNeighborhood userNeighborhood = new NearestNUserNeighborhood(20, similarity, dataModel);
             long[] ar = userNeighborhood.getUserNeighborhood(id);
+            System.out.println(ar.length);
             // 构建推荐器
             Recommender recommender = new GenericUserBasedRecommender(dataModel, userNeighborhood, similarity);
             // 推荐商品
-            List<RecommendedItem> recommendedItems = recommender.recommend(id, 20);
+            List<RecommendedItem> recommendedItems = recommender.recommend(id, 10);
             List<Long> idList = recommendedItems.stream().map(RecommendedItem::getItemID).collect(Collectors.toList());
 
             // 获得关注者的视频列表
             List<Long> followVideoIdList = userFollowService.getFollowVideoIdList(id);
             idList.addAll(followVideoIdList);
 
-            // 布隆过滤  去除重复视频
-            Iterator<Long> iterator = idList.iterator();
-            while (iterator.hasNext()) {
-                Long videoId = iterator.next();
-                String key = id + "-" + videoId;
-                if (bloomFilter.contains(key)) {
-                    iterator.remove();
-                } else {
-                    bloomFilter.add(key);
-                }
-            }
+//            // 布隆过滤  去除重复视频
+//            Iterator<Long> iterator = idList.iterator();
+//            while (iterator.hasNext()) {
+//                Long videoId = iterator.next();
+//                String key = id + "-" + videoId;
+//                if (bloomFilter.contains(key)) {
+//                    iterator.remove();
+//                } else {
+//                    bloomFilter.add(key);
+//                }
+//            }
             List<Video> videoList = new ArrayList<>();
             // 无推荐视频
             if (CollectionUtils.isNotEmpty(idList)) {
                 videoList = this.listByIds(idList);
             }
-            // todo 无推荐补偿
+            // todo 无推荐补偿  推荐重复问题
             List<VideoVO> videoVOList = new ArrayList<>();
             if (CollectionUtils.isEmpty(videoList)) {
                 return videoVOList;
@@ -311,7 +311,6 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         User loginUser = userService.getLoginUserPermitNull(request);
         if (loginUser != null) {
             Set<Long> videoIdSet = videoList.stream().map(Video::getId).collect(Collectors.toSet());
-            loginUser = userService.getLoginUser(request);
             // 获取点赞
             QueryWrapper<VideoThumb> videoThumbQueryWrapper = new QueryWrapper<>();
             videoThumbQueryWrapper.in("videoId", videoIdSet);
