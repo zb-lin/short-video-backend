@@ -2,11 +2,13 @@ package com.lzb.shortvideo.service.impl;
 
 import cn.hutool.bloomfilter.BitMapBloomFilter;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
+import com.lzb.shortvideo.annotation.Cache;
 import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.constant.CommonConstant;
 import com.lzb.shortvideo.exception.BusinessException;
@@ -263,6 +265,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
                 flag = true;
                 uuid = RedisKeyUtils.getUUID();
             }
+
             Map<Object, Object> userPreferenceMap = RedisUtils.hmget(VIDEO_RECOMMEND_KEY + uuid);
             List<UserPreference> userPreferenceList = userPreferenceMap.values().stream()
                     .map(userPreferenceJson -> JSONUtil.toBean((String) userPreferenceJson, UserPreference.class)).collect(Collectors.toList());
@@ -310,13 +313,16 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             if (CollectionUtils.isNotEmpty(idList)) {
                 videoList = this.listByIds(idList);
             }
-            // todo 无推荐补偿
-            List<VideoVO> videoVOList = new ArrayList<>();
+            // 无推荐补偿
             if (CollectionUtils.isEmpty(videoList)) {
-                return videoVOList;
+                VideoSearchRequest videoSearchRequest = new VideoSearchRequest();
+                int current = RandomUtil.randomInt(1, 50);
+                videoSearchRequest.setCurrent(current);
+                videoSearchRequest.setPageSize(10);
+                videoSearchRequest.setSortField("createTime");
+                videoList = searchFromEs(videoSearchRequest).getRecords();
             }
-            videoVOList = getVideoVOList(videoList, request);
-            return videoVOList;
+            return getVideoVOList(videoList, request);
         } catch (TasteException e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "推荐算法出错");
         }
