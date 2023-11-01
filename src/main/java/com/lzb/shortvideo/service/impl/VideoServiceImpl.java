@@ -1,6 +1,8 @@
 package com.lzb.shortvideo.service.impl;
 
 import cn.hutool.bloomfilter.BitMapBloomFilter;
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -25,6 +27,7 @@ import com.lzb.shortvideo.model.vo.VideoVO;
 import com.lzb.shortvideo.service.UserFollowService;
 import com.lzb.shortvideo.service.UserService;
 import com.lzb.shortvideo.service.VideoService;
+import com.lzb.shortvideo.utils.RedisKeyUtils;
 import com.lzb.shortvideo.utils.RedisUtils;
 import com.lzb.shortvideo.utils.SqlUtils;
 import com.lzb.shortvideo.utils.sensitive.sensitiveWord.SensitiveWordBs;
@@ -253,7 +256,16 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     public List<VideoVO> recommend(Long id, HttpServletRequest request) {
         try {
             // 从缓存中取
-            List<UserPreference> userPreferenceList = RedisUtils.getList(VIDEO_RECOMMEND_KEY, UserPreference.class);
+            String uuid = RedisKeyUtils.getUUID(id);
+            boolean flag = false;
+            if (uuid == null) {
+                // 取原始数据
+                flag = true;
+                uuid = RedisKeyUtils.getUUID();
+            }
+            Map<Object, Object> userPreferenceMap = RedisUtils.hmget(VIDEO_RECOMMEND_KEY + uuid);
+            List<UserPreference> userPreferenceList = userPreferenceMap.values().stream()
+                    .map(userPreferenceJson -> JSONUtil.toBean((String) userPreferenceJson, UserPreference.class)).collect(Collectors.toList());
             // 创建数据模型
             DataModel dataModel = this.createDataModel(userPreferenceList);
             // 获取用户相似度
@@ -261,34 +273,44 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             // 获取用户邻居
             UserNeighborhood userNeighborhood = new NearestNUserNeighborhood(20, similarity, dataModel);
             long[] ar = userNeighborhood.getUserNeighborhood(id);
-            System.out.println(ar.length);
             // 构建推荐器
             Recommender recommender = new GenericUserBasedRecommender(dataModel, userNeighborhood, similarity);
             // 推荐商品
             List<RecommendedItem> recommendedItems = recommender.recommend(id, 10);
+            for (RecommendedItem recommendedItem : recommendedItems) {
+                for (long l : ar) {
+                    userPreferenceMap.remove(l + "-" + recommendedItem.getItemID());
+                }
+            }
+            String simpleUUID = IdUtil.simpleUUID();
+            RedisUtils.hmset(VIDEO_RECOMMEND_KEY + simpleUUID, userPreferenceMap);
+            RedisKeyUtils.setUUID(simpleUUID, id);
+            if (!flag) {
+                RedisUtils.del(VIDEO_RECOMMEND_KEY + uuid);
+            }
             List<Long> idList = recommendedItems.stream().map(RecommendedItem::getItemID).collect(Collectors.toList());
 
             // 获得关注者的视频列表
             List<Long> followVideoIdList = userFollowService.getFollowVideoIdList(id);
             idList.addAll(followVideoIdList);
 
-//            // 布隆过滤  去除重复视频
-//            Iterator<Long> iterator = idList.iterator();
-//            while (iterator.hasNext()) {
-//                Long videoId = iterator.next();
-//                String key = id + "-" + videoId;
-//                if (bloomFilter.contains(key)) {
-//                    iterator.remove();
-//                } else {
-//                    bloomFilter.add(key);
-//                }
-//            }
+            // 布隆过滤  去除重复视频
+            Iterator<Long> iterator = idList.iterator();
+            while (iterator.hasNext()) {
+                Long videoId = iterator.next();
+                String key = id + "-" + videoId;
+                if (bloomFilter.contains(key)) {
+                    iterator.remove();
+                } else {
+                    bloomFilter.add(key);
+                }
+            }
             List<Video> videoList = new ArrayList<>();
             // 无推荐视频
             if (CollectionUtils.isNotEmpty(idList)) {
                 videoList = this.listByIds(idList);
             }
-            // todo 无推荐补偿  推荐重复问题
+            // todo 无推荐补偿
             List<VideoVO> videoVOList = new ArrayList<>();
             if (CollectionUtils.isEmpty(videoList)) {
                 return videoVOList;

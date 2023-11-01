@@ -1,11 +1,14 @@
 package com.lzb.shortvideo.job.cycle;
 
+import cn.hutool.core.util.IdUtil;
+import com.google.gson.Gson;
 import com.lzb.shortvideo.annotation.RedissonLock;
 import com.lzb.shortvideo.model.dto.recommend.UserPreference;
 import com.lzb.shortvideo.model.entity.VideoFavour;
 import com.lzb.shortvideo.model.entity.VideoThumb;
 import com.lzb.shortvideo.service.VideoFavourService;
 import com.lzb.shortvideo.service.VideoThumbService;
+import com.lzb.shortvideo.utils.RedisKeyUtils;
 import com.lzb.shortvideo.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,17 +35,33 @@ public class PreCacheJob {
     @Resource
     private VideoThumbService videoThumbService;
 
+
+    private static final Gson GSON = new Gson();
+
     /**
      * 每一小时执行任务
      */
     @Scheduled(cron = "0 0 */1 * * ?")
     @RedissonLock(prefixKey = VIDEO_RECOMMEND_LOCK)
     public void doCacheRecommend() {
+        String simpleUUID = IdUtil.simpleUUID();
+        System.out.println(simpleUUID);
         List<UserPreference> allUserPreference = getAllUserPreference();
+        Map<Object, Object> userPreferenceMap = new HashMap<>();
+        for (UserPreference userPreference : allUserPreference) {
+            String key = userPreference.getUserId() + "-" + userPreference.getVideoId();
+            String json = GSON.toJson(userPreference);
+            userPreferenceMap.put(key, json);
+        }
         try {
-            RedisUtils.set(VIDEO_RECOMMEND_KEY, allUserPreference);
+            RedisUtils.hmset(VIDEO_RECOMMEND_KEY + simpleUUID, userPreferenceMap);
         } catch (Exception e) {
             log.error("redis set key error", e);
+        }
+        String uuid = RedisKeyUtils.getUUID();
+        RedisKeyUtils.setUUID(simpleUUID);
+        if (uuid != null) {
+            RedisUtils.del(VIDEO_RECOMMEND_KEY + uuid);
         }
     }
 

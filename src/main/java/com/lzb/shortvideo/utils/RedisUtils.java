@@ -366,7 +366,7 @@ public class RedisUtils {
      * @param map 对应多个键值
      * @return true 成功 false 失败
      */
-    public static Boolean hmset(String key, Map<String, Object> map) {
+    public static Boolean hmset(String key, Map<Object, Object> map) {
         try {
             stringRedisTemplate.opsForHash().putAll(key, map);
             return true;
