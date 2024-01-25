@@ -24,7 +24,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -87,9 +86,9 @@ public class FileController {
             file = File.createTempFile(filepath, null);
             multipartFile.transferTo(file);
             File finalFile = file;
-            CompletableFuture.runAsync(() -> {
-                cosManager.putObject(finalFile, userId, filename, fileUploadBizEnum);
-            }, threadPoolExecutor);
+//            CompletableFuture.runAsync(() -> {
+            cosManager.putObject(finalFile, userId, filename, fileUploadBizEnum);
+//            }, threadPoolExecutor);
             // 返回可访问地址
             String cosHost = cosClientConfig.getCosHost();
             UploadFileVO uploadFileVo = new UploadFileVO(cosHost, filepath, thumbnailPath);

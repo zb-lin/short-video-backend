@@ -90,6 +90,11 @@
             <artifactId>canal.protocol</artifactId>
             <version>1.1.6</version>
         </dependency>
+        <!--mongodb-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
         <!--rabbitmq-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -209,6 +214,7 @@
             <version>0.1.6</version>
             <scope>test</scope>
         </dependency>
+
 
     </dependencies>
 

@@ -2,6 +2,7 @@ package com.lzb.shortvideo.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lzb.shortvideo.annotation.AuthCheck;
+import com.lzb.shortvideo.annotation.FrequencyControl;
 import com.lzb.shortvideo.common.BaseResponse;
 import com.lzb.shortvideo.common.DeleteRequest;
 import com.lzb.shortvideo.common.ErrorCode;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 用户接口
@@ -229,6 +231,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/update/my")
+    @FrequencyControl(time = 1, count = 1, unit = TimeUnit.DAYS, target = FrequencyControl.Target.UID)
     public BaseResponse<Boolean> updateMyUser(@RequestBody UserUpdateMyRequest userUpdateMyRequest,
                                               HttpServletRequest request) {
         if (userUpdateMyRequest == null) {

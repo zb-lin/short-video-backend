@@ -15,12 +15,13 @@ public class RedissonConfig {
 
     private String host;
     private String port;
+    private String password;
 
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();
         String redisAddress = String.format("redis://%s:%s", host, port);
-        config.useSingleServer().setAddress(redisAddress).setDatabase(1);
+        config.useSingleServer().setAddress(redisAddress).setDatabase(1).setPassword(password);
         return Redisson.create(config);
     }
 }

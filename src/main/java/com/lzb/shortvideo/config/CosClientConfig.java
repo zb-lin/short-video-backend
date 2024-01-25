@@ -37,6 +37,6 @@ public class CosClientConfig {
     @Bean
     public String getUpToken() {
         Auth auth = Auth.create(accessKey, secretKey);
-        return auth.uploadToken(bucketName);
+        return auth.uploadToken(bucketName, null, 10000, null, true);
     }
 }

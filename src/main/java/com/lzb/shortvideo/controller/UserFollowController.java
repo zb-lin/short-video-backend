@@ -1,5 +1,6 @@
 package com.lzb.shortvideo.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.lzb.shortvideo.common.BaseResponse;
@@ -24,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.List;
 
 /**
  * 视频接口
@@ -56,14 +56,24 @@ public class UserFollowController {
         if (userFollowAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        UserFollow userFollow = new UserFollow();
-        BeanUtils.copyProperties(userFollowAddRequest, userFollow);
         User loginUser = userService.getLoginUser(request);
-        userFollow.setUserId(loginUser.getId());
-        boolean result = userFollowService.save(userFollow);
+        Long userId = loginUser.getId();
+        LambdaQueryWrapper<UserFollow> userFollowLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userFollowLambdaQueryWrapper.eq(UserFollow::getFollowerId, userFollowAddRequest.getFollowerId());
+        userFollowLambdaQueryWrapper.eq(UserFollow::getUserId, userId);
+        UserFollow userFollow = userFollowService.getOne(userFollowLambdaQueryWrapper);
+        if (userFollow == null) {
+            userFollow = new UserFollow();
+            BeanUtils.copyProperties(userFollowAddRequest, userFollow);
+            userFollow.setUserId(userId);
+            boolean result = userFollowService.save(userFollow);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+            long newUserFollowId = userFollow.getId();
+            return ResultUtils.success(newUserFollowId, "关注成功");
+        }
+        boolean result = userFollowService.removeById(userFollow.getId());
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        long newUserFollowId = userFollow.getId();
-        return ResultUtils.success(newUserFollowId);
+        return ResultUtils.success(1L, "取消关注成功");
     }
 
     /**

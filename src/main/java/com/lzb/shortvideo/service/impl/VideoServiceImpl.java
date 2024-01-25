@@ -4,15 +4,16 @@ import cn.hutool.bloomfilter.BitMapBloomFilter;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
-import com.lzb.shortvideo.annotation.Cache;
 import com.lzb.shortvideo.common.ErrorCode;
 import com.lzb.shortvideo.constant.CommonConstant;
 import com.lzb.shortvideo.exception.BusinessException;
 import com.lzb.shortvideo.exception.ThrowUtils;
+import com.lzb.shortvideo.mapper.UserFollowMapper;
 import com.lzb.shortvideo.mapper.VideoFavourMapper;
 import com.lzb.shortvideo.mapper.VideoMapper;
 import com.lzb.shortvideo.mapper.VideoThumbMapper;
@@ -20,10 +21,7 @@ import com.lzb.shortvideo.model.dto.recommend.UserPreference;
 import com.lzb.shortvideo.model.dto.video.VideoEsDTO;
 import com.lzb.shortvideo.model.dto.video.VideoQueryRequest;
 import com.lzb.shortvideo.model.dto.video.VideoSearchRequest;
-import com.lzb.shortvideo.model.entity.User;
-import com.lzb.shortvideo.model.entity.Video;
-import com.lzb.shortvideo.model.entity.VideoFavour;
-import com.lzb.shortvideo.model.entity.VideoThumb;
+import com.lzb.shortvideo.model.entity.*;
 import com.lzb.shortvideo.model.vo.UserVO;
 import com.lzb.shortvideo.model.vo.VideoVO;
 import com.lzb.shortvideo.service.UserFollowService;
@@ -86,7 +84,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
 
     @Resource
     private VideoFavourMapper videoFavourMapper;
-
+    @Resource
+    private UserFollowMapper userFollowMapper;
     @Resource
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
     @Resource
@@ -265,7 +264,6 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
                 flag = true;
                 uuid = RedisKeyUtils.getUUID();
             }
-
             Map<Object, Object> userPreferenceMap = RedisUtils.hmget(VIDEO_RECOMMEND_KEY + uuid);
             List<UserPreference> userPreferenceList = userPreferenceMap.values().stream()
                     .map(userPreferenceJson -> JSONUtil.toBean((String) userPreferenceJson, UserPreference.class)).collect(Collectors.toList());
@@ -336,6 +334,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         // 2. 已登录，获取用户点赞、收藏状态
         Map<Long, Boolean> videoIdHasThumbMap = new HashMap<>();
         Map<Long, Boolean> videoIdHasFavourMap = new HashMap<>();
+        Map<Long, Boolean> userHasFollowMap = new HashMap<>();
         User loginUser = userService.getLoginUserPermitNull(request);
         if (loginUser != null) {
             Set<Long> videoIdSet = videoList.stream().map(Video::getId).collect(Collectors.toSet());
@@ -351,6 +350,13 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             videoFavourQueryWrapper.eq("userId", loginUser.getId());
             List<VideoFavour> videoFavourList = videoFavourMapper.selectList(videoFavourQueryWrapper);
             videoFavourList.forEach(videoFavour -> videoIdHasFavourMap.put(videoFavour.getVideoId(), true));
+            // 获取是否已关注
+            Set<Long> userFollowIdSet = videoList.stream().map(Video::getUserId).collect(Collectors.toSet());
+            LambdaQueryWrapper<UserFollow> userFollowLambdaQueryWrapper = new LambdaQueryWrapper<>();
+            userFollowLambdaQueryWrapper.in(UserFollow::getFollowerId, userFollowIdSet);
+            userFollowLambdaQueryWrapper.eq(UserFollow::getUserId, loginUser.getId());
+            List<UserFollow> userFollowList = userFollowMapper.selectList(userFollowLambdaQueryWrapper);
+            userFollowList.forEach(userFollow -> userHasFollowMap.put(userFollow.getFollowerId(), true));
         }
         // 填充信息
         return videoList.stream().map(video -> {
@@ -363,6 +369,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
             videoVO.setUser(userService.getUserVO(user));
             videoVO.setHasThumb(videoIdHasThumbMap.getOrDefault(video.getId(), false));
             videoVO.setHasFavour(videoIdHasFavourMap.getOrDefault(video.getId(), false));
+            videoVO.setHasFollow(userHasFollowMap.getOrDefault(video.getUserId(), false));
             return videoVO;
         }).collect(Collectors.toList());
     }

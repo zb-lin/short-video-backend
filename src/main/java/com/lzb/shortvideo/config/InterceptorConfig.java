@@ -20,6 +20,6 @@ public class InterceptorConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(collectorInterceptor)
-                .addPathPatterns("/file/**", "/comment/**", "/video/**");
+                .addPathPatterns("/**");
     }
 }

@@ -53,6 +53,23 @@ class MainApplicationTests {
 
     private static final Gson GSON = new Gson();
 
+    public static void main(String[] args) {
+        String s = "abba";
+        Map<Character, Integer> map = new HashMap<>();
+        int max = 0;
+        int left = 0;
+        for(int i = 0; i < s.length(); ++i) {
+            // 出现重复字符
+            if(map.containsKey(s.charAt(i))) {
+                left = map.get(s.charAt(i)) + 1;
+            }
+            map.put(s.charAt(i), i);
+            max = Math.max(max, i - left + 1);
+        }
+        System.out.println(max);
+    }
+
+
     @Test
     void tets() throws TasteException {
         long id = 1717188659762479105L;
